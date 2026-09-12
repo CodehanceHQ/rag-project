@@ -98,6 +98,12 @@ sequenceDiagram
 
 This version performs **retrieval**, not generated question answering. It deliberately shows the source passages so you can learn how semantic search behaves before adding an LLM response layer.
 
+### Permanent deletion flow
+
+The document inspector includes a **Delete** action. Before anything is removed, the interface displays a confirmation dialog listing the affected raw file, chunks, vectors, index entries, and metadata. Confirming it calls `DELETE /documents/{document_id}`. The backend removes all chunks, deletes the original GridFS file, and finally deletes the document record. MongoDB automatically removes deleted vectors from the Vector Search index.
+
+Documents cannot be deleted while ingestion is still running. This prevents an active background job from recreating chunks after the source record has been removed.
+
 ## Supported documents
 
 PDF, DOCX, PPTX, XLSX, TXT, Markdown, CSV, JSON, HTML, XML, YAML, and common source-code files. Image-only PDFs need OCR, which is not included in this first version.
@@ -194,6 +200,89 @@ The Compose volumes retain:
 | Embeddings | `chunks.embedding` | Numeric representation used for semantic similarity |
 | Source metadata | `chunks.page` and `chunks.section` | Connect results to their original location |
 | Vector index | MongoDB `chunk_vector_index` | Efficient nearest-neighbor lookup |
+
+## Inspect MongoDB directly
+
+The application inspector shows a convenient preview, but you can also examine the underlying MongoDB records with a graphical application or from the terminal.
+
+### Option 1: MongoDB Compass
+
+[MongoDB Compass](https://www.mongodb.com/products/tools/compass) is the easiest visual database browser.
+
+1. Install and open Compass while OrbStack and the `local-rag-mongodb` container are running.
+2. Create a new connection with this local development URI:
+
+```text
+mongodb://rag:rag-local-password@localhost:27017/local_rag?authSource=admin&directConnection=true
+```
+
+3. Open the `local_rag` database.
+4. Select a collection and open its **Documents** tab.
+
+The collections are:
+
+| Collection | Contents |
+| --- | --- |
+| `documents` | One application record per upload, including status, counts, and its GridFS file ID |
+| `chunks` | Extracted text chunks, source metadata, and embedding arrays |
+| `raw_files.files` | GridFS filename, size, upload date, and file metadata |
+| `raw_files.chunks` | Binary pieces of the original files managed by GridFS |
+
+The `chunks.embedding` field is the actual vector stored as an array of floating-point numbers. Use the application’s **Download raw** action to view an original file; `raw_files.chunks.data` is binary storage rather than extracted text.
+
+If you change `MONGODB_ROOT_USERNAME` or `MONGODB_ROOT_PASSWORD` in `.env`, update the Compass URI accordingly.
+
+### Option 2: `mongosh` inside the container
+
+The Atlas Local image already includes `mongosh`, so you do not need to install the shell separately:
+
+```bash
+docker exec -it local-rag-mongodb mongosh \
+  --username rag \
+  --password rag-local-password \
+  --authenticationDatabase admin \
+  local_rag
+```
+
+Once connected, try these read-only commands:
+
+```javascript
+// Show all collections.
+show collections
+
+// Count each type of stored object.
+db.documents.countDocuments()
+db.chunks.countDocuments()
+db.raw_files.files.countDocuments()
+
+// Inspect document metadata without printing vectors or binary data.
+db.documents.find(
+  {},
+  { filename: 1, status: 1, size_bytes: 1, chunk_count: 1, vector_count: 1 }
+).pretty()
+
+// Inspect chunk text and only the first eight numbers of each vector.
+db.chunks.find(
+  {},
+  { filename: 1, page: 1, section: 1, content: 1, embedding: { $slice: 8 } }
+).limit(5).pretty()
+
+// Inspect the raw GridFS file metadata.
+db.raw_files.files.find(
+  {},
+  { filename: 1, length: 1, uploadDate: 1, metadata: 1 }
+).pretty()
+
+// Verify that the Vector Search index is ready and queryable.
+db.chunks.aggregate([
+  { $listSearchIndexes: {} },
+  { $project: { name: 1, status: 1, queryable: 1 } }
+]).toArray()
+```
+
+Run `exit` to leave `mongosh`.
+
+Direct editing or deletion in Compass or `mongosh` can leave GridFS, document metadata, and vectors out of sync. Use the application’s permanent-delete action when removing an uploaded document.
 
 ## Stop and restart
 

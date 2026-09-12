@@ -9,7 +9,7 @@ type DocumentRecord = {
   filename: string;
   content_type: string;
   size_bytes: number;
-  status: "processing" | "ready" | "failed";
+  status: "processing" | "ready" | "failed" | "deleting" | "delete_failed";
   stage: string;
   progress: number;
   character_count: number;
@@ -86,6 +86,8 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState("all");
   const [searching, setSearching] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DocumentRecord | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [error, setError] = useState("");
 
@@ -102,7 +104,11 @@ export default function Home() {
       ]);
       setHealth(healthResult);
       setDocuments(documentResult);
-      setSelectedId((current) => current || documentResult[0]?.id || "");
+      setSelectedId((current) =>
+        current && documentResult.some((document) => document.id === current)
+          ? current
+          : documentResult[0]?.id || "",
+      );
     } catch (caught) {
       setHealth(null);
       setError(caught instanceof Error ? caught.message : "The API is unavailable.");
@@ -176,6 +182,28 @@ export default function Home() {
       setError(caught instanceof Error ? caught.message : "Search failed.");
     } finally {
       setSearching(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await api(`/documents/${deleteTarget.id}`, { method: "DELETE" });
+      const remaining = documents.filter((document) => document.id !== deleteTarget.id);
+      setDocuments(remaining);
+      setResults((current) => current.filter((result) => result.document_id !== deleteTarget.id));
+      if (selectedId === deleteTarget.id) {
+        setSelectedId(remaining[0]?.id ?? "");
+        setChunks([]);
+      }
+      setDeleteTarget(null);
+      await refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Deletion failed.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -271,7 +299,16 @@ export default function Home() {
                 <h3>{selected?.filename ?? "Select a document"}</h3>
               </div>
               {selected && (
-                <a className="raw-link" href={`${API_URL}/documents/${selected.id}/raw`}>Download raw ↗</a>
+                <div className="document-actions">
+                  <a className="raw-link" href={`${API_URL}/documents/${selected.id}/raw`}>Download raw ↗</a>
+                  <button
+                    className="delete-link"
+                    disabled={selected.status === "processing" || selected.status === "deleting"}
+                    onClick={() => setDeleteTarget(selected)}
+                  >
+                    Delete
+                  </button>
+                </div>
               )}
             </div>
 
@@ -371,7 +408,38 @@ export default function Home() {
         <span>LOCAL RAG STUDIO</span>
         <span>Raw files + vectors in MongoDB · Embeddings on device</span>
       </footer>
+
+      {deleteTarget && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => !deleting && setDeleteTarget(null)}>
+          <section
+            className="delete-modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-title"
+            aria-describedby="delete-description"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="warning-mark">!</div>
+            <p className="eyebrow">PERMANENT DELETION</p>
+            <h2 id="delete-title">Delete this document?</h2>
+            <p id="delete-description">
+              <strong>{deleteTarget.filename}</strong> will be permanently removed. This action cannot be undone.
+            </p>
+            <ul>
+              <li>The original {formatBytes(deleteTarget.size_bytes)} file in GridFS</li>
+              <li>{deleteTarget.chunk_count} extracted text chunks</li>
+              <li>{deleteTarget.vector_count} embedding vectors and their search-index entries</li>
+              <li>All document metadata and ingestion history</li>
+            </ul>
+            <div className="modal-actions">
+              <button className="cancel-button" disabled={deleting} onClick={() => setDeleteTarget(null)}>Keep document</button>
+              <button className="confirm-delete" disabled={deleting} onClick={handleDelete}>
+                {deleting ? "Deleting everything…" : "Delete permanently"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
-

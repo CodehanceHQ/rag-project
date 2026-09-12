@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from gridfs.errors import NoFile
 from bson import ObjectId
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -162,6 +163,51 @@ def download_raw_document(document_id: str) -> StreamingResponse:
 
     headers = {"Content-Disposition": f'attachment; filename="{record["filename"]}"'}
     return StreamingResponse(iter_file(), media_type=record.get("content_type"), headers=headers)
+
+
+@app.delete("/documents/{document_id}")
+def delete_document(document_id: str) -> Dict[str, Any]:
+    try:
+        object_id = ObjectId(document_id)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    record = documents.find_one({"_id": object_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    if record.get("status") == "processing":
+        raise HTTPException(
+            status_code=409,
+            detail="This document is still being processed. Wait for ingestion to finish before deleting it.",
+        )
+
+    documents.update_one(
+        {"_id": object_id},
+        {"$set": {"status": "deleting", "stage": "deleting", "error": None}},
+    )
+    try:
+        chunk_result = chunks.delete_many({"document_id": document_id})
+        raw_deleted = True
+        try:
+            raw_files.delete(record["raw_file_id"])
+        except NoFile:
+            # A retry after a partial deletion should still remove the metadata record.
+            raw_deleted = False
+        document_result = documents.delete_one({"_id": object_id})
+    except PyMongoError as exc:
+        documents.update_one(
+            {"_id": object_id},
+            {"$set": {"status": "delete_failed", "stage": "delete failed", "error": str(exc)}},
+        )
+        raise HTTPException(status_code=500, detail=f"Deletion failed and can be retried: {exc}")
+
+    return {
+        "deleted": document_result.deleted_count == 1,
+        "document_id": document_id,
+        "filename": record["filename"],
+        "chunks_deleted": chunk_result.deleted_count,
+        "raw_file_deleted": raw_deleted,
+    }
 
 
 @app.get("/documents/{document_id}/chunks")
