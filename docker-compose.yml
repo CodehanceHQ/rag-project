@@ -1,0 +1,25 @@
+services:
+  mongodb:
+    image: mongodb/mongodb-atlas-local:8.0
+    container_name: local-rag-mongodb
+    environment:
+      MONGODB_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-rag}
+      MONGODB_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-rag-local-password}
+      DO_NOT_TRACK: "1"
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - mongodb_search:/data/mongot
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$${MONGODB_INITDB_ROOT_USERNAME}\" --password \"$${MONGODB_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+volumes:
+  mongodb_data:
+  mongodb_config:
+  mongodb_search:
