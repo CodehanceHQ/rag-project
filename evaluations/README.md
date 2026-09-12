@@ -7,9 +7,17 @@ The evaluation files provide known expectations for the fictional Northstar corp
 | File | Upload these document groups | Purpose |
 | --- | --- | --- |
 | `questions.json` | `policies`, `procedures`, `reference` | Establish a clean retrieval baseline without deliberately conflicting or irrelevant sources |
-| `conflict-and-noise-questions.json` | All document groups | Test obsolete policies, controlling amendments, ambiguous wording, and topically similar noise |
+| `conflict-and-noise-questions.json` | `policies`, `procedures`, `reference`, `conflicting-versions`, `noise` | Test obsolete policies, controlling amendments, ambiguous wording, and topically similar noise |
+| `solution-experiments.json` | Groups listed by each experiment | Compare an existing failure with a specific remediation and measurable acceptance criteria |
 
 Run the baseline first. Save its ranks and scores, then upload `conflicting-versions` and `noise` and run the challenge suite. Several challenge questions deliberately repeat baseline questions so you can compare how their ranking changes.
+
+The solution experiments distinguish between two implementation states:
+
+- `available_manual` means the treatment can be tested with the application now.
+- `pending` means the JSON defines the future acceptance test, but the capability must be implemented before the treatment run is possible.
+
+This prevents an evaluation plan from being mistaken for an implemented feature. At present, permanent document deletion is the available document-management treatment. Metadata extraction and filtering, hybrid search, structure-aware CSV chunks, reranking, and calibrated relevance thresholds remain pending.
 
 ## Evaluate retrieval first
 
@@ -49,3 +57,14 @@ An answer can sound excellent while relying on the wrong retrieved passage. Keep
 | 3 | Add noise | Default | Default | Vector |  |  |
 
 Change one variable per run. Useful future comparisons include smaller and larger chunks, metadata filters, hybrid keyword and vector search, a reranker, and different embedding models.
+
+## Run a solution experiment
+
+Each entry in `solution-experiments.json` contains:
+
+1. A concrete failure and query.
+2. A control configuration using the current behavior.
+3. One treatment tied to a specific capability.
+4. Success criteria that can be checked without relying on appearance or intuition.
+
+Record the control result before implementing the treatment. After implementation, repeat the same query against the same corpus. A fix passes only when all success criteria hold and the baseline suite does not materially regress.

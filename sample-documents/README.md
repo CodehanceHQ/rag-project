@@ -4,7 +4,7 @@ This directory contains fictional company documents designed to make the strengt
 
 ## What to upload
 
-Start by uploading the files in `policies/`, `procedures/`, and `reference/`. Run the baseline questions in `../evaluations/questions.json`. Then add `conflicting-versions/` and `noise/` and run `../evaluations/conflict-and-noise-questions.json` to see how retrieval changes.
+Start by uploading the files in `policies/`, `procedures/`, and `reference/`. Run the baseline questions in `../evaluations/questions.json`. Then add `conflicting-versions/` and `noise/` and run `../evaluations/conflict-and-noise-questions.json` to see how retrieval changes. The `parsing-challenges/` group is reserved for the structure-aware parsing test in `../evaluations/solution-experiments.json`.
 
 Do not upload the `evaluations` directory. It contains expected answers and would leak the answers into the searchable collection.
 
@@ -48,6 +48,10 @@ Ask: `Does Northstar provide dental insurance?`
 
 No document answers this. The current application will still return nearest passages because vector search always ranks something. A generated-answer system needs a relevance threshold and an explicit abstention rule.
 
+### 8. Test proposed fixes
+
+Use `../evaluations/solution-experiments.json` to run paired control and treatment experiments. It connects each failure to metadata filtering, hybrid search, better parsing, reranking, document management, or a relevance threshold. Treatments marked `pending` are acceptance tests for capabilities that have not been implemented yet.
+
 ## What this corpus demonstrates
 
 | Scenario | What to observe | Production requirement |
@@ -69,7 +73,9 @@ No document answers this. The current application will still return nearest pass
 2. Record the top result, its score, and whether the expected source appears in the top three.
 3. Add the superseded policy, amendment, and noise document.
 4. Run `conflict-and-noise-questions.json` and compare repeated questions with the baseline.
-5. Change one variable at a time, such as chunk size, overlap, result count, embedding model, or query wording.
-6. Delete a source through the application and confirm that it no longer appears in retrieval or MongoDB.
+5. Use `solution-experiments.json` to choose one remediation and record its control result.
+6. Change one variable at a time, such as metadata filters, parsing, search method, or reranking.
+7. Repeat the baseline suite to check that the fix did not cause a regression.
+8. Delete a source through the application and confirm that it no longer appears in retrieval or MongoDB.
 
 The evaluation file uses expected facts and source filenames rather than fixed similarity scores. Scores depend on the embedding model, chunking settings, and corpus contents.

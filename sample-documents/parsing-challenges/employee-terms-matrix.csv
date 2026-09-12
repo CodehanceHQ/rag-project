@@ -1,0 +1,21 @@
+country,employment_group,probation_days,notice_days,benefit_plan,notes
+Spain,Engineering,90,30,ES-Tech,Standard permanent engineering terms
+Spain,Customer Support,60,30,ES-Core,Standard permanent support terms
+Spain,Sales,90,30,ES-Commercial,Commission plan applies separately
+Spain,Finance,90,30,ES-Core,Financial-control training required
+France,Engineering,120,45,FR-Tech,Local addendum required
+France,Customer Support,60,30,FR-Core,Weekend rota agreement may apply
+France,Sales,90,45,FR-Commercial,Commission plan applies separately
+France,Finance,120,45,FR-Core,Financial-control training required
+Germany,Engineering,180,90,DE-Tech,Works council terms may also apply
+Germany,Customer Support,90,60,DE-Core,Weekend rota agreement may apply
+Germany,Sales,180,90,DE-Commercial,Commission plan applies separately
+Germany,Finance,180,90,DE-Core,Financial-control training required
+Italy,Engineering,120,45,IT-Tech,Local addendum required
+Italy,Customer Support,90,30,IT-Core,Weekend rota agreement may apply
+Italy,Sales,120,45,IT-Commercial,Commission plan applies separately
+Italy,Finance,120,45,IT-Core,Financial-control training required
+Portugal,Engineering,120,45,PT-Tech,Local addendum required
+Portugal,Customer Support,120,30,PT-Core,Weekend rota agreement may apply
+Portugal,Sales,120,45,PT-Commercial,Commission plan applies separately
+Portugal,Finance,120,45,PT-Core,Financial-control training required

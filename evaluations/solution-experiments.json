@@ -1,0 +1,137 @@
+{
+  "corpus": "Northstar Analytics learning corpus",
+  "version": "1.0",
+  "suite": "solution_experiments",
+  "purpose": "Compare a known retrieval problem with a specific remediation. A treatment marked pending requires application work before it can be run; available treatments can be performed with the current application.",
+  "experiments": [
+    {
+      "id": "metadata-filter-current-policy",
+      "problem": "Dense similarity can rank a superseded policy above the current policy because their wording is almost identical.",
+      "capability": "metadata_filters",
+      "implementation_status": "pending",
+      "required_document_groups": ["policies", "conflicting-versions"],
+      "query": "How many annual leave days does a full-time employee receive in 2026?",
+      "control": {
+        "configuration": "Vector search over every document",
+        "failure_signal": "annual-leave-policy-2024-superseded.md ranks above the current policy or supports a 20-day answer"
+      },
+      "treatment": {
+        "configuration": "Extract status and effective dates at ingestion, then filter to status=current and effective_date<=2026-12-31 before vector ranking",
+        "required_fields": ["policy_id", "status", "effective_date", "superseded_date"]
+      },
+      "success_criteria": [
+        "annual-leave-policy-2026.md is the highest-ranked leave policy",
+        "The retrieved evidence states 25 working days",
+        "The superseded policy is absent from active-policy results"
+      ]
+    },
+    {
+      "id": "hybrid-search-exact-policy-id",
+      "problem": "Dense embeddings can underweight exact identifiers even when they capture the general topic.",
+      "capability": "hybrid_search",
+      "implementation_status": "pending",
+      "required_document_groups": ["policies", "procedures", "reference"],
+      "query": "What is SEC-104?",
+      "control": {
+        "configuration": "Vector search only",
+        "measurement": "Record the rank of information-security-policy.md"
+      },
+      "treatment": {
+        "configuration": "Combine MongoDB text-search and vector-search candidates, then fuse their ranks",
+        "keyword_signal": "Exact token SEC-104",
+        "semantic_signal": "Policy meaning and surrounding security content"
+      },
+      "success_criteria": [
+        "information-security-policy.md ranks first",
+        "The returned passage contains both SEC-104 and Information Security Policy",
+        "Semantic paraphrase performance from the baseline suite does not regress"
+      ]
+    },
+    {
+      "id": "structure-aware-csv-parsing",
+      "problem": "A generic character splitter can separate CSV rows from their column headings, leaving numeric values without meaning.",
+      "capability": "better_parsing",
+      "implementation_status": "pending",
+      "required_document_groups": ["parsing-challenges"],
+      "query": "For a Customer Support employee in Portugal, what are the probation and notice periods?",
+      "expected_fact": "120 days of probation and 30 days of notice",
+      "expected_sources": ["employee-terms-matrix.csv"],
+      "control": {
+        "configuration": "Serialize the whole CSV and apply the generic 1,000-character splitter",
+        "failure_signal": "The matching passage contains 120 and 30 but no labels identifying which number is probation and which is notice"
+      },
+      "treatment": {
+        "configuration": "Create one semantic record per CSV row and repeat column names as field labels",
+        "expected_chunk": "country: Portugal; employment_group: Customer Support; probation_days: 120; notice_days: 30; benefit_plan: PT-Core"
+      },
+      "success_criteria": [
+        "The Portugal Customer Support row ranks first",
+        "The retrieved passage preserves the column names and values together",
+        "The evidence unambiguously supports both expected numbers"
+      ]
+    },
+    {
+      "id": "rerank-travel-result-over-office-noise",
+      "problem": "A topically similar facilities document can compete with the correct travel-rate source.",
+      "capability": "reranking",
+      "implementation_status": "pending",
+      "required_document_groups": ["reference", "noise"],
+      "query": "What is the nightly hotel cap for business travel to Valencia?",
+      "expected_fact": "EUR 145 per night",
+      "expected_sources": ["regional-travel-rates.csv"],
+      "control": {
+        "configuration": "Return the top eight vector-search results directly",
+        "measurement": "Record the ranks of regional-travel-rates.csv and office-facilities-guide.md"
+      },
+      "treatment": {
+        "configuration": "Retrieve 20 vector candidates and use a query-passage reranker before returning the best five"
+      },
+      "success_criteria": [
+        "regional-travel-rates.csv ranks first",
+        "office-facilities-guide.md does not outrank the rate table",
+        "The first passage directly contains Valencia and the EUR 145 hotel value"
+      ]
+    },
+    {
+      "id": "managed-policy-replacement",
+      "problem": "Keeping an obsolete policy in the active corpus exposes conflicting answers.",
+      "capability": "document_management",
+      "implementation_status": "available_manual",
+      "required_document_groups": ["policies", "conflicting-versions"],
+      "query": "How many annual leave days does a full-time employee receive in 2026?",
+      "control": {
+        "configuration": "Keep both annual-leave-policy-2024-superseded.md and annual-leave-policy-2026.md in MongoDB",
+        "measurement": "Record whether the obsolete policy appears in the results"
+      },
+      "treatment": {
+        "configuration": "Use the application delete action to remove annual-leave-policy-2024-superseded.md, including its raw file, chunks, vectors, and metadata"
+      },
+      "success_criteria": [
+        "No result references annual-leave-policy-2024-superseded.md",
+        "MongoDB contains no chunks for the deleted document ID",
+        "annual-leave-policy-2026.md supplies the 25-day evidence"
+      ],
+      "future_automation": "Recognize replacements during ingestion, preserve the old file in an archive, and exclude archived versions from the active retrieval index."
+    },
+    {
+      "id": "minimum-score-abstention",
+      "problem": "Nearest-neighbor search always returns the closest chunks even when the corpus does not contain an answer.",
+      "capability": "retrieval_threshold",
+      "implementation_status": "pending",
+      "required_document_groups": ["policies", "procedures", "reference", "noise"],
+      "query": "Does Northstar provide dental insurance?",
+      "control": {
+        "configuration": "Always display the top eight vector results",
+        "failure_signal": "The interface presents unrelated passages as though they answer the question"
+      },
+      "treatment": {
+        "configuration": "Calibrate a minimum relevance threshold on labelled answerable and unanswerable questions, then abstain when no result passes it"
+      },
+      "success_criteria": [
+        "The system states that the available documents do not contain an answer",
+        "No unsupported dental benefit is inferred",
+        "Answerable baseline questions remain above the chosen threshold"
+      ]
+    }
+  ]
+}
