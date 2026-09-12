@@ -19,6 +19,13 @@ type DocumentRecord = {
   raw_file_id: string;
   created_at: string;
   error?: string | null;
+  source_metadata: {
+    record_id?: string;
+    owner?: string;
+    source_status?: string;
+    effective_date?: string;
+    superseded_date?: string;
+  };
 };
 
 type Chunk = {
@@ -40,15 +47,69 @@ type SearchResult = {
   section?: string;
   content: string;
   score: number;
+  vector_score?: number;
+  text_score?: number;
+  fused_score?: number;
+  reranker_score?: number;
+  signals: string[];
+  record_id?: string;
+  source_status: string;
+  effective_date?: string;
   embedding_preview: number[];
+};
+
+type SearchResponse = {
+  mode: "vector" | "hybrid";
+  abstained: boolean;
+  decision: "answer" | "abstain" | "clarify";
+  message?: string | null;
+  clarification?: {
+    reason: string;
+    question: string;
+    options: Array<{ label: string; refined_query: string; evidence_ids: string[] }>;
+  } | null;
+  pipeline: {
+    vector_candidates: number;
+    text_candidates: number;
+    fused_candidates: number;
+    reranked_candidates: number;
+    minimum_score?: number | null;
+    top_reranker_score?: number | null;
+    ambiguity_status: "not_applicable" | "not_configured" | "skipped" | "checked" | "error";
+  };
+  results: SearchResult[];
+};
+
+type EvaluationResponse = {
+  passed: number;
+  failed: number;
+  total: number;
+  duration_ms: number;
+  cases: Array<{
+    suite: string;
+    id: string;
+    question: string;
+    expected_behavior: string;
+    passed: boolean;
+    detail: string;
+    abstained: boolean;
+    decision: string;
+    ambiguity_status: string;
+    top_results: Array<{ filename: string; score: number }>;
+  }>;
 };
 
 type Health = {
   status: string;
   database: string;
   vector_index: string;
+  text_index: string;
   embedding_model: string;
   embedding_dimensions: number;
+  reranker_model: string;
+  minimum_relevance_score: number;
+  ambiguity_llm_configured: boolean;
+  ambiguity_model: string;
 };
 
 type InspectorTab = "overview" | "chunks" | "storage";
@@ -103,10 +164,15 @@ export default function Home() {
   const [uploading, setUploading] = useState(false);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState("all");
+  const [searchMode, setSearchMode] = useState<"vector" | "hybrid">("hybrid");
+  const [includeSuperseded, setIncludeSuperseded] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [evaluating, setEvaluating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DocumentRecord | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
+  const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null);
   const [error, setError] = useState("");
   const [activeView, setActiveView] = useState<AppView>("documents");
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("overview");
@@ -185,27 +251,34 @@ export default function Home() {
     if (event.target.files) uploadFiles(event.target.files);
   }
 
-  async function handleSearch(event: FormEvent) {
-    event.preventDefault();
-    if (query.trim().length < 2) return;
+  async function performSearch(searchQuery: string) {
+    if (searchQuery.trim().length < 2) return;
     setSearching(true);
     setError("");
     try {
-      const response = await api<{ results: SearchResult[] }>("/search", {
+      const response = await api<SearchResponse>("/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: query.trim(),
+          query: searchQuery.trim(),
           limit: 8,
           document_id: scope === "all" ? null : scope,
+          mode: searchMode,
+          include_superseded: includeSuperseded,
         }),
       });
       setResults(response.results);
+      setSearchResponse(response);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Search failed.");
     } finally {
       setSearching(false);
     }
+  }
+
+  async function handleSearch(event: FormEvent) {
+    event.preventDefault();
+    await performSearch(query);
   }
 
   async function handleDelete() {
@@ -227,6 +300,19 @@ export default function Home() {
       setError(caught instanceof Error ? caught.message : "Deletion failed.");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleEvaluation() {
+    setEvaluating(true);
+    setError("");
+    try {
+      const response = await api<EvaluationResponse>("/evaluations/run", { method: "POST" });
+      setEvaluation(response);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Evaluation failed.");
+    } finally {
+      setEvaluating(false);
     }
   }
 
@@ -320,6 +406,7 @@ export default function Home() {
             <span>Embedding model</span>
             <strong>{health?.embedding_model.split("/").pop() ?? "Unavailable"}</strong>
             <small>{health?.embedding_dimensions ?? 384} dimensions · local</small>
+            <small>Ambiguity: {health?.ambiguity_llm_configured ? health.ambiguity_model : "OpenRouter key not configured"}</small>
           </div>
         </aside>
 
@@ -388,6 +475,9 @@ export default function Home() {
                       <div><dt>Chunks</dt><dd>{selected.chunk_count.toLocaleString()}</dd></div>
                       <div><dt>Vectors</dt><dd>{selected.vector_count.toLocaleString()}</dd></div>
                       <div><dt>Vector dimensions</dt><dd>{selected.embedding_dimensions ?? health?.embedding_dimensions ?? 384}</dd></div>
+                      <div><dt>Source status</dt><dd>{selected.source_metadata.source_status ?? "current"}</dd></div>
+                      {selected.source_metadata.record_id && <div><dt>Record ID</dt><dd><code>{selected.source_metadata.record_id}</code></dd></div>}
+                      {selected.source_metadata.effective_date && <div><dt>Effective date</dt><dd>{selected.source_metadata.effective_date}</dd></div>}
                       <div><dt>GridFS file ID</dt><dd><code>{selected.raw_file_id}</code></dd></div>
                       <div><dt>Document ID</dt><dd><code>{selected.id}</code></dd></div>
                     </dl>
@@ -449,11 +539,50 @@ export default function Home() {
             <div className="retrieval-view">
               <header className="content-header compact">
                 <div>
-                  <p className="section-label">Semantic search</p>
+                  <p className="section-label">Retrieval pipeline</p>
                   <h2>Retrieve passages</h2>
-                  <p>Search document meaning using the same embedding model used during ingestion.</p>
+                  <p>Compare vector-only retrieval with filtering, hybrid search, rank fusion, reranking and abstention.</p>
+                </div>
+                <div className="evaluation-action">
+                  <button className="secondary-button" disabled={evaluating || searching} onClick={handleEvaluation}>
+                    {evaluating ? "Running 19 checks…" : "Run evaluation"}
+                  </button>
+                  <small>{health?.ambiguity_llm_configured ? "May call OpenRouter" : "Ambiguity check disabled"}</small>
                 </div>
               </header>
+
+              {evaluation && (
+                <section className="evaluation-panel" aria-live="polite">
+                  <div className="evaluation-summary">
+                    <div>
+                      <p className="section-label">Behavioural evaluation</p>
+                      <strong>{evaluation.passed} of {evaluation.total} passed</strong>
+                      <span>{(evaluation.duration_ms / 1000).toFixed(1)} seconds · current indexed corpus</span>
+                    </div>
+                    <span className={evaluation.failed ? "evaluation-warning" : "evaluation-success"}>
+                      {evaluation.failed} failed
+                    </span>
+                  </div>
+                  <div className="evaluation-cases">
+                    {evaluation.cases.map((item) => (
+                      <details className={item.passed ? "passed" : "failed"} key={`${item.suite}-${item.id}`}>
+                        <summary>
+                          <span>{item.passed ? "✓" : "×"}</span>
+                          <strong>{item.id}</strong>
+                          <small>{item.detail}</small>
+                        </summary>
+                        <p>{item.question}</p>
+                        <div>
+                          Expected: {item.expected_behavior.replaceAll("_", " ")}
+                          {item.top_results.length
+                            ? ` · Top results: ${item.top_results.map((result) => `${result.filename} (${result.score.toFixed(3)})`).join(", ")}`
+                            : " · No passages returned"}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <form className="search-form" onSubmit={handleSearch}>
                 <label htmlFor="retrieval-query">Question or search phrase</label>
@@ -466,6 +595,13 @@ export default function Home() {
                 />
                 <div className="search-controls">
                   <label>
+                    Retrieval mode
+                    <select value={searchMode} onChange={(event) => setSearchMode(event.target.value as "vector" | "hybrid")}>
+                      <option value="hybrid">Enhanced hybrid pipeline</option>
+                      <option value="vector">Vector-only baseline</option>
+                    </select>
+                  </label>
+                  <label>
                     Search scope
                     <select value={scope} onChange={(event) => setScope(event.target.value)}>
                       <option value="all">All ready documents</option>
@@ -474,11 +610,68 @@ export default function Home() {
                       ))}
                     </select>
                   </label>
+                  {searchMode === "hybrid" && (
+                    <label className="checkbox-control">
+                      <input
+                        type="checkbox"
+                        checked={includeSuperseded}
+                        onChange={(event) => setIncludeSuperseded(event.target.checked)}
+                      />
+                      Include superseded sources
+                    </label>
+                  )}
                   <button className="primary-button" type="submit" disabled={searching || query.trim().length < 2}>
                     {searching ? "Searching" : "Retrieve"}
                   </button>
                 </div>
               </form>
+
+              {searchResponse && (
+                <div className="pipeline-summary" aria-live="polite">
+                  {searchResponse.mode === "vector" ? (
+                    <span>Vector-only baseline · {searchResponse.pipeline.vector_candidates} candidates returned</span>
+                  ) : (
+                    <>
+                      <span>Metadata filter</span><b>→</b>
+                      <span>{searchResponse.pipeline.vector_candidates} vector + {searchResponse.pipeline.text_candidates} text</span><b>→</b>
+                      <span>{searchResponse.pipeline.fused_candidates} fused</span><b>→</b>
+                      <span>{searchResponse.pipeline.reranked_candidates} reranked</span><b>→</b>
+                      <span>
+                        threshold {searchResponse.pipeline.minimum_score?.toFixed(2)}
+                        {searchResponse.pipeline.top_reranker_score != null
+                          ? ` · top ${searchResponse.pipeline.top_reranker_score.toFixed(3)}`
+                          : ""}
+                      </span>
+                      <span>ambiguity {searchResponse.pipeline.ambiguity_status.replaceAll("_", " ")}</span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {searchResponse?.abstained && <div className="abstention" role="status">{searchResponse.message}</div>}
+
+              {searchResponse?.decision === "clarify" && searchResponse.clarification && (
+                <section className="clarification" aria-live="polite">
+                  <p className="section-label">Clarification needed</p>
+                  <h3>{searchResponse.clarification.question}</h3>
+                  <p>{searchResponse.clarification.reason}</p>
+                  <div>
+                    {searchResponse.clarification.options.map((option) => (
+                      <button
+                        className="secondary-button"
+                        key={option.refined_query}
+                        disabled={searching}
+                        onClick={() => {
+                          setQuery(option.refined_query);
+                          void performSearch(option.refined_query);
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <div className="result-header">
                 <h3>Results</h3>
@@ -492,9 +685,19 @@ export default function Home() {
                       <div className="result-meta">
                         <button onClick={() => selectDocument(result.document_id)}>{result.filename}</button>
                         <span>{result.page ? `Page ${result.page}` : result.section ?? `Chunk ${result.chunk_index + 1}`}</span>
-                        <strong>{(result.score * 100).toFixed(1)}% match</strong>
+                        <span className="signal-list">{result.signals.map((signal) => <em key={signal}>{signal}</em>)}</span>
+                        <strong>{result.score.toFixed(3)} {searchResponse?.mode === "hybrid" ? "reranker" : "vector"}</strong>
                       </div>
                       <p>{result.content}</p>
+                      {searchResponse?.mode === "hybrid" && (
+                        <div className="score-breakdown">
+                          <span>vector {result.vector_score?.toFixed(3) ?? "—"}</span>
+                          <span>text {result.text_score?.toFixed(3) ?? "—"}</span>
+                          <span>fusion {result.fused_score?.toFixed(3) ?? "—"}</span>
+                          <span>reranker {result.reranker_score?.toFixed(3) ?? "—"}</span>
+                          <span>{result.source_status}{result.record_id ? ` · ${result.record_id}` : ""}</span>
+                        </div>
+                      )}
                       <button className="vector-toggle" onClick={() => toggleVector(result.id)}>
                         {expandedVectors.has(result.id) ? "Hide vector preview" : "Inspect vector preview"}
                       </button>
@@ -502,7 +705,7 @@ export default function Home() {
                     </div>
                   </article>
                 ))}
-                {!results.length && <div className="empty-state">Retrieved passages will appear here with source locations and similarity scores.</div>}
+                {!results.length && !searchResponse?.abstained && <div className="empty-state">Retrieved passages will appear here with their ranking signals.</div>}
               </div>
             </div>
           )}

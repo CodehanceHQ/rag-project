@@ -1,6 +1,6 @@
 # Local RAG Studio
 
-A local-first document ingestion and semantic retrieval application. Original files are stored in MongoDB GridFS, while extracted chunks, metadata, and Hugging Face embeddings are stored in a MongoDB collection with a Vector Search index.
+A local-first document ingestion and inspectable retrieval application. Original files are stored in MongoDB GridFS, while extracted chunks, structured source metadata, and Hugging Face embeddings are stored in MongoDB. The application can compare a vector-only baseline with a hybrid pipeline that filters, fuses, reranks, and abstains.
 
 The repository includes a fictional [RAG learning corpus](sample-documents/README.md), separate [baseline](evaluations/questions.json) and [conflict-and-noise](evaluations/conflict-and-noise-questions.json) question sets, paired [solution experiments](evaluations/solution-experiments.json), and an [evaluation guide](evaluations/README.md). The corpus demonstrates direct retrieval, paraphrases, exact values, tables, conflicting policy versions, amendments, multi-document questions, ambiguity, irrelevant noise, and questions that should not be answered.
 
@@ -8,10 +8,11 @@ The repository includes a fictional [RAG learning corpus](sample-documents/READM
 
 - Next.js UI: drag-and-drop, ingestion progress, storage inspection, retrieval
 - FastAPI: uploads, parsing, embedding, MongoDB access
-- MongoDB Atlas Local: raw GridFS files plus vectorized chunks
-- Hugging Face Sentence Transformers: local embeddings
+- MongoDB Atlas Local: raw GridFS files, vectorized chunks, Vector Search, and full-text Search
+- Hugging Face Sentence Transformers: local embeddings and a local cross-encoder reranker
 - LangChain: document representation, chunking, and embedding integration
 - LangSmith: optional tracing, disabled by default
+- OpenRouter: optional structured ambiguity decisions after local retrieval
 - OrbStack: lightweight Docker-compatible runtime for MongoDB Atlas Local
 
 ### How the pieces interact
@@ -33,8 +34,10 @@ flowchart LR
                 DOCS[(documents collection<br/>status and metadata)]
                 RAW[(GridFS<br/>original file bytes)]
                 CHUNKS[(chunks collection<br/>text and embedding arrays)]
-                INDEX[(Vector Search index)]
-                CHUNKS --> INDEX
+                VINDEX[(Vector Search index)]
+                TINDEX[(Full-text Search index)]
+                CHUNKS --> VINDEX
+                CHUNKS --> TINDEX
             end
         end
     end
@@ -45,18 +48,23 @@ flowchart LR
     API --> DOCS
     API --> RAW
     HF -->|384-number vectors| CHUNKS
-    API -->|vector query| INDEX
-    INDEX -->|closest chunks and scores| API
+    API -->|vector query| VINDEX
+    API -->|keyword query| TINDEX
+    VINDEX -->|semantic candidates| API
+    TINDEX -->|lexical candidates| API
+    API --> RR[Rank fusion and local reranker]
+    RR --> API
     API -->|passages and source metadata| UI
 
     API -. optional traces when enabled .-> LS[LangSmith cloud]
+    API -. close competing passages when configured .-> OR[OpenRouter ambiguity model]
 
     classDef interface fill:#d8ff57,stroke:#173f30,color:#17211d;
     classDef service fill:#faf9f5,stroke:#66716b,color:#17211d;
     classDef storage fill:#173f30,stroke:#173f30,color:#ffffff;
     class UI interface;
     class API,EX,LC,HF service;
-    class DOCS,RAW,CHUNKS,INDEX storage;
+    class DOCS,RAW,CHUNKS,VINDEX,TINDEX storage;
 ```
 
 The frontend and backend run as normal macOS processes. Only MongoDB Atlas Local runs in a container. OrbStack supplies the lightweight Linux environment required by that container.
@@ -92,13 +100,25 @@ sequenceDiagram
 
 ### Retrieval flow
 
-1. The user writes a natural-language question.
-2. The same Hugging Face model converts that question into a 384-dimensional vector.
-3. MongoDB Vector Search compares the question vector with the stored chunk vectors.
-4. MongoDB returns the closest chunks with similarity scores.
-5. The UI displays the passages, filenames, pages or sections, and scores.
+The interface exposes two modes. **Vector-only baseline** converts the question into a 384-dimensional vector and returns MongoDB's closest chunks directly, including obsolete sources and weak nearest neighbours. **Enhanced hybrid pipeline** performs five additional steps:
 
-This version performs **retrieval**, not generated question answering. It deliberately shows the source passages so you can learn how semantic search behaves before adding an LLM response layer.
+1. Filter the eligible corpus using structured source status metadata.
+2. Retrieve up to 30 semantic candidates and 30 full-text candidates.
+3. Combine the two rankings with reciprocal rank fusion, without treating unlike raw scores as interchangeable.
+4. Rerank the fused candidates with a local query-passage cross-encoder.
+5. Return only passages above the configured relevance threshold, or explicitly abstain.
+
+The result inspector shows the vector, text, fusion, and reranker signals separately. These are ranking measurements, not correctness probabilities.
+
+After reranking, an optional OpenRouter ambiguity gate examines close competing results. It returns a structured `answer` or `clarify` decision with evidence-backed clarification options. Selecting an option in the interface reruns retrieval with the refined question. To limit external calls, the gate runs only when at least two accepted candidates are within `AMBIGUITY_SCORE_MARGIN` of one another.
+
+Select **Run evaluation** in the retrieval header to execute all 19 behavioural checks against the currently indexed corpus. The panel shows the pass count, runtime, expected behaviour, and top evidence for each case. The same suite is available from the command line:
+
+```bash
+.venv/bin/python evaluations/run_retrieval_evaluation.py
+```
+
+This version performs **retrieval**, not generated question answering. It deliberately shows the source passages so you can compare pipeline stages before adding an LLM response layer.
 
 ### Permanent deletion flow
 
@@ -174,13 +194,30 @@ Useful local URLs:
 - API health: <http://localhost:8000/health>
 - Interactive API documentation: <http://localhost:8000/docs>
 
-The first ingestion downloads the configured embedding model and can take a minute. Later runs use the local Hugging Face cache. A Hugging Face token is optional for this public model; setting `HF_TOKEN` only increases Hub download rate limits.
+The first ingestion downloads the configured embedding model and can take a minute. The first enhanced search also downloads the configured cross-encoder reranker. Later runs use the local Hugging Face cache. A Hugging Face token is optional for these public models; setting `HF_TOKEN` only increases Hub download rate limits.
 
 ## Configuration
 
-Copy `.env.example` to `.env` (automatically done by `make setup`). The default local username and password are shared by the backend and Compose file. No API key is required unless you enable LangSmith tracing. `MONGODB_URI` is intentionally blank for local use; it can hold a full Atlas cloud connection string later.
+Copy `.env.example` to `.env` (automatically done by `make setup`). The default local username and password are shared by the backend and Compose file. No API key is required for ingestion and local retrieval. LangSmith tracing and OpenRouter ambiguity detection each require their own optional key. `MONGODB_URI` is intentionally blank for local use; it can hold a full Atlas cloud connection string later.
 
 Do not change `EMBEDDING_MODEL` or `EMBEDDING_DIMENSIONS` after storing documents without rebuilding the vector index and re-ingesting the documents.
+
+The default `MINIMUM_RELEVANCE_SCORE=0.15` is a local learning threshold calibrated against the included corpus. It is not portable confidence. Re-evaluate it whenever the corpus, chunking, embedding model, or reranker changes.
+
+### Configure OpenRouter ambiguity detection
+
+Create an API key in OpenRouter, then place it in the root `.env` file:
+
+```dotenv
+OPENROUTER_API_KEY=your-key-here
+OPENROUTER_MODEL=openai/gpt-4.1-mini
+```
+
+Restart `make api` after changing `.env`. The key is read only by the FastAPI backend and is never returned by `/health` or sent to the browser. You can change `OPENROUTER_MODEL` to another OpenRouter model that supports structured outputs.
+
+When the ambiguity gate runs, the query and up to six retrieved passage excerpts leave the local machine and are sent through OpenRouter to the selected model provider. Do not enable it for material that is not approved for that external processing path.
+
+Without a key, or if the ambiguity request fails, retrieval still returns its locally ranked passages and exposes `not_configured` or `error` as the ambiguity status. Running the evaluation with a configured key can make several paid OpenRouter requests when candidate scores are close.
 
 ## Data persistence
 
@@ -202,6 +239,8 @@ The Compose volumes retain:
 | Embeddings | `chunks.embedding` | Numeric representation used for semantic similarity |
 | Source metadata | `chunks.page` and `chunks.section` | Connect results to their original location |
 | Vector index | MongoDB `chunk_vector_index` | Efficient nearest-neighbor lookup |
+| Full-text index | MongoDB `chunk_text_index` | BM25-style lexical candidates for hybrid retrieval |
+| Source eligibility | `source_status`, `record_id`, and dates | Filter superseded material before ranking |
 
 ## Inspect MongoDB directly
 

@@ -11,6 +11,7 @@ from .config import settings
 from .database import chunks, documents, raw_files
 from .embeddings import get_embeddings
 from .extractors import extract_documents
+from .source_metadata import extract_source_metadata
 
 
 def _now() -> datetime:
@@ -36,6 +37,7 @@ def ingest_document(document_id_text: str) -> None:
         stream = raw_files.open_download_stream(record["raw_file_id"])
         data = stream.read()
         extracted = extract_documents(record["filename"], data)
+        source_metadata = extract_source_metadata(item.page_content for item in extracted)
         character_count = sum(len(item.page_content) for item in extracted)
         if not character_count:
             raise ValueError("The document did not contain readable text.")
@@ -73,6 +75,7 @@ def ingest_document(document_id_text: str) -> None:
                     "section": item.metadata.get("section"),
                     "start_index": item.metadata.get("start_index"),
                     "embedding": [float(value) for value in vector],
+                    **source_metadata,
                     "created_at": _now(),
                 }
             )
@@ -87,10 +90,11 @@ def ingest_document(document_id_text: str) -> None:
             chunk_count=len(rows),
             vector_count=len(rows),
             embedding_dimensions=settings.embedding_dimensions,
+            source_metadata=source_metadata,
+            parser_version=2,
             completed_at=_now(),
             error=None,
         )
     except Exception as exc:
         chunks.delete_many({"document_id": document_id_text})
         _set_status(document_id, "failed", 100, status="failed", error=str(exc))
-

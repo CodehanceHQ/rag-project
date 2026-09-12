@@ -12,16 +12,17 @@ The evaluation files provide known expectations for the fictional Northstar corp
 
 Run the baseline first. Save its ranks and scores, then upload `conflicting-versions` and `noise` and run the challenge suite. Several challenge questions deliberately repeat baseline questions so you can compare how their ranking changes.
 
-The solution experiments distinguish between two implementation states:
+The solution experiments distinguish between implementation states:
 
+- `available` means the treatment is implemented and can be exercised through enhanced retrieval.
 - `available_manual` means the treatment can be tested with the application now.
 - `pending` means the JSON defines the future acceptance test, but the capability must be implemented before the treatment run is possible.
 
-This prevents an evaluation plan from being mistaken for an implemented feature. At present, permanent document deletion is the available document-management treatment. Metadata extraction and filtering, hybrid search, structure-aware CSV chunks, reranking, and calibrated relevance thresholds remain pending.
+This prevents an evaluation plan from being mistaken for an implemented feature. Metadata filtering, hybrid search, structure-aware CSV chunks, reranking, relevance-threshold abstention, permanent deletion, and optional OpenRouter clarification are now available. Generated multi-source answers remain outside the retrieval implementation.
 
 ## Evaluate retrieval first
 
-The current application returns passages and similarity scores. For each answerable case, record:
+The current application returns passages and separate ranking signals. For each answerable case, record:
 
 - whether an expected source appears at rank 1
 - whether an expected source appears in the top 3
@@ -33,7 +34,17 @@ Two useful aggregate measures are:
 - `Recall@3`: the percentage of answerable questions with an expected source in the first three results
 - `MRR`: the average reciprocal rank of the first expected source, where rank 1 scores 1, rank 2 scores 0.5, and rank 3 scores 0.33
 
-Similarity scores are not correctness probabilities. Compare scores within an experiment, but do not assume that an 80 percent similarity means an answer is 80 percent likely to be correct.
+Vector and reranker scores are not correctness probabilities. Compare like scores within an experiment, but do not assume that a score of 0.80 means an answer is 80 percent likely to be correct.
+
+Use **Run evaluation** in the application's retrieval screen, or run the same automated behavioural checks from the command line while MongoDB and the indexed corpus are available:
+
+```bash
+PYTHONPATH=backend .venv/bin/python evaluations/run_retrieval_evaluation.py
+```
+
+The runner deliberately reports unsupported behaviours as failures. In particular, returning several interpretations is not the same as asking the user to clarify an ambiguous question.
+
+The ambiguity case requires `OPENROUTER_API_KEY` in the root `.env`. Without it, the suite reports that case as a failure with `ambiguity status: not_configured`. With a key configured, evaluation may make several OpenRouter requests and incur provider charges.
 
 ## Evaluate answer generation later
 
@@ -56,7 +67,7 @@ An answer can sound excellent while relying on the wrong retrieved passage. Keep
 | 2 | Add conflicting versions | Default | Default | Vector |  |  |
 | 3 | Add noise | Default | Default | Vector |  |  |
 
-Change one variable per run. Useful future comparisons include smaller and larger chunks, metadata filters, hybrid keyword and vector search, a reranker, and different embedding models.
+Change one variable per run. Useful comparisons include smaller and larger chunks, vector-only versus hybrid retrieval, metadata filters, reranker models, thresholds, and different embedding models.
 
 ## Run a solution experiment
 

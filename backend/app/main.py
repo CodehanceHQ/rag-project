@@ -1,7 +1,8 @@
 import io
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from gridfs.errors import NoFile
 from bson import ObjectId
@@ -13,13 +14,20 @@ from pydantic import BaseModel, Field
 from pymongo.errors import PyMongoError
 
 from .config import settings
-from .database import chunks, documents, ensure_database, raw_files, vector_index_status
+from .ambiguity import detect_ambiguity
+from .database import chunks, documents, ensure_database, raw_files, search_index_status, vector_index_status
 from .embeddings import get_embeddings
+from .evaluation import assess_case, load_cases
 from .extractors import SUPPORTED_EXTENSIONS
 from .ingestion import ingest_document
+from .retrieval import reciprocal_rank_fusion, rerank
 
 
 def _serialize_document(record: Dict[str, Any]) -> Dict[str, Any]:
+    source_metadata = dict(record.get("source_metadata", {}))
+    for field in ("effective_date", "superseded_date"):
+        if isinstance(source_metadata.get(field), datetime):
+            source_metadata[field] = source_metadata[field].date().isoformat()
     return {
         "id": str(record["_id"]),
         "filename": record["filename"],
@@ -35,6 +43,7 @@ def _serialize_document(record: Dict[str, Any]) -> Dict[str, Any]:
         "raw_file_id": str(record["raw_file_id"]),
         "created_at": record["created_at"].isoformat(),
         "error": record.get("error"),
+        "source_metadata": source_metadata,
     }
 
 
@@ -58,6 +67,9 @@ class SearchRequest(BaseModel):
     query: str = Field(min_length=2, max_length=2000)
     limit: int = Field(default=6, ge=1, le=20)
     document_id: Optional[str] = None
+    mode: Literal["vector", "hybrid"] = "hybrid"
+    include_superseded: bool = False
+    minimum_score: Optional[float] = Field(default=None, ge=0, le=1)
 
 
 @app.get("/health")
@@ -68,8 +80,13 @@ def health() -> Dict[str, Any]:
             "status": "ok",
             "database": "connected",
             "vector_index": vector_index_status(),
+            "text_index": search_index_status(settings.mongodb_text_index),
             "embedding_model": settings.embedding_model,
             "embedding_dimensions": settings.embedding_dimensions,
+            "reranker_model": settings.reranker_model,
+            "minimum_relevance_score": settings.minimum_relevance_score,
+            "ambiguity_llm_configured": bool(settings.openrouter_api_key),
+            "ambiguity_model": settings.openrouter_model,
         }
     except PyMongoError as exc:
         raise HTTPException(status_code=503, detail=f"MongoDB unavailable: {exc}")
@@ -230,59 +247,198 @@ def inspect_chunks(document_id: str, limit: int = Query(default=8, ge=1, le=50))
     return output
 
 
-@app.post("/search")
-@traceable(name="mongodb-vector-retrieval", run_type="retriever")
-def semantic_search(request: SearchRequest) -> Dict[str, Any]:
-    if vector_index_status() != "ready":
-        raise HTTPException(status_code=503, detail="The vector index is still building. Try again shortly.")
+def _metadata_filters(request: SearchRequest) -> List[Dict[str, Any]]:
+    filters: List[Dict[str, Any]] = []
+    if request.document_id:
+        filters.append({"document_id": {"$eq": request.document_id}})
+    if not request.include_superseded:
+        filters.append({"source_status": {"$eq": "current"}})
+    return filters
 
-    vector = get_embeddings().embed_query(request.query)
+
+def _vector_candidates(request: SearchRequest, vector: List[float], limit: int) -> List[Dict[str, Any]]:
     vector_search: Dict[str, Any] = {
         "index": settings.mongodb_vector_index,
         "path": "embedding",
         "queryVector": [float(value) for value in vector],
-        "numCandidates": max(request.limit * 15, 100),
-        "limit": request.limit,
+        "numCandidates": max(limit * 15, 100),
+        "limit": limit,
     }
-    if request.document_id:
-        vector_search["filter"] = {"document_id": {"$eq": request.document_id}}
-
+    filters = _metadata_filters(request)
+    if len(filters) == 1:
+        vector_search["filter"] = filters[0]
+    elif filters:
+        vector_search["filter"] = {"$and": filters}
     pipeline = [
         {"$vectorSearch": vector_search},
-        {
-            "$project": {
-                "_id": 1,
-                "document_id": 1,
-                "filename": 1,
-                "chunk_index": 1,
-                "page": 1,
-                "section": 1,
-                "content": 1,
-                "embedding": 1,
-                "score": {"$meta": "vectorSearchScore"},
-            }
-        },
+        {"$project": {
+            "document_id": 1, "filename": 1, "chunk_index": 1, "page": 1,
+            "section": 1, "content": 1, "embedding": 1, "record_id": 1,
+            "source_status": 1, "effective_date": 1,
+            "score": {"$meta": "vectorSearchScore"},
+        }},
     ]
-    try:
-        matches = list(chunks.aggregate(pipeline))
-    except PyMongoError as exc:
-        raise HTTPException(status_code=500, detail=f"Vector search failed: {exc}")
+    output = list(chunks.aggregate(pipeline))
+    for item in output:
+        item["signal"] = "vector"
+        item["vector_score"] = float(item.get("score", 0.0))
+    return output
 
+
+def _text_candidates(request: SearchRequest, limit: int) -> List[Dict[str, Any]]:
+    search_filters: List[Dict[str, Any]] = []
+    if request.document_id:
+        search_filters.append({"equals": {"path": "document_id", "value": request.document_id}})
+    if not request.include_superseded:
+        search_filters.append({"equals": {"path": "source_status", "value": "current"}})
+    compound: Dict[str, Any] = {
+        "must": [{"text": {"query": request.query, "path": ["content", "filename"]}}],
+    }
+    if search_filters:
+        compound["filter"] = search_filters
+    pipeline = [
+        {"$search": {"index": settings.mongodb_text_index, "compound": compound}},
+        {"$limit": limit},
+        {"$project": {
+            "document_id": 1, "filename": 1, "chunk_index": 1, "page": 1,
+            "section": 1, "content": 1, "embedding": 1, "record_id": 1,
+            "source_status": 1, "effective_date": 1,
+            "score": {"$meta": "searchScore"},
+        }},
+    ]
+    output = list(chunks.aggregate(pipeline))
+    for item in output:
+        item["signal"] = "text"
+        item["text_score"] = float(item.get("score", 0.0))
+    return output
+
+
+def _serialize_result(row: Dict[str, Any], score: float) -> Dict[str, Any]:
+    effective_date = row.get("effective_date")
     return {
-        "query": request.query,
-        "embedding_dimensions": len(vector),
-        "results": [
-            {
-                "id": str(row["_id"]),
-                "document_id": row["document_id"],
-                "filename": row["filename"],
-                "chunk_index": row["chunk_index"],
-                "page": row.get("page"),
-                "section": row.get("section"),
-                "content": row["content"],
-                "score": row.get("score", 0),
-                "embedding_preview": row.get("embedding", [])[:8],
+        "id": str(row["_id"]),
+        "document_id": row["document_id"],
+        "filename": row["filename"],
+        "chunk_index": row["chunk_index"],
+        "page": row.get("page"),
+        "section": row.get("section"),
+        "content": row["content"],
+        "score": score,
+        "vector_score": row.get("vector_score"),
+        "text_score": row.get("text_score"),
+        "fused_score": row.get("fused_score"),
+        "reranker_score": row.get("reranker_score"),
+        "signals": row.get("signals", [row.get("signal", "vector")]),
+        "record_id": row.get("record_id"),
+        "source_status": row.get("source_status", "current"),
+        "effective_date": effective_date.date().isoformat() if isinstance(effective_date, datetime) else None,
+        "embedding_preview": row.get("embedding", [])[:8],
+    }
+
+
+@app.post("/search")
+@traceable(name="retrieval-pipeline", run_type="retriever")
+def search(request: SearchRequest) -> Dict[str, Any]:
+    if vector_index_status() != "ready":
+        raise HTTPException(status_code=503, detail="The vector index is still building. Try again shortly.")
+
+    vector = get_embeddings().embed_query(request.query)
+    try:
+        if request.mode == "vector":
+            baseline_request = request.model_copy(update={"include_superseded": True})
+            matches = _vector_candidates(baseline_request, vector, request.limit)
+            return {
+                "query": request.query,
+                "mode": "vector",
+                "embedding_dimensions": len(vector),
+                "abstained": False,
+                "decision": "answer",
+                "message": None,
+                "clarification": None,
+                "pipeline": {
+                    "vector_candidates": len(matches), "text_candidates": 0,
+                    "fused_candidates": 0, "reranked_candidates": 0,
+                    "minimum_score": None, "top_reranker_score": None,
+                    "ambiguity_status": "not_applicable",
+                },
+                "results": [_serialize_result(row, float(row.get("score", 0.0))) for row in matches],
             }
-            for row in matches
-        ],
+
+        if search_index_status(settings.mongodb_text_index) != "ready":
+            raise HTTPException(status_code=503, detail="The text index is still building. Try again shortly.")
+        candidate_limit = max(request.limit, settings.retrieval_candidate_limit)
+        vector_matches = _vector_candidates(request, vector, candidate_limit)
+        text_matches = _text_candidates(request, candidate_limit)
+        fused = reciprocal_rank_fusion(
+            [vector_matches, text_matches], rank_constant=settings.rrf_rank_constant
+        )
+        reranked = rerank(request.query, fused[:candidate_limit])
+        minimum_score = request.minimum_score if request.minimum_score is not None else settings.minimum_relevance_score
+        accepted = [row for row in reranked if row["reranker_score"] >= minimum_score][:request.limit]
+        abstained = not accepted
+        ambiguity = (
+            detect_ambiguity(request.query, accepted)
+            if not abstained
+            else {"status": "not_applicable", "decision": "abstain"}
+        )
+        return {
+            "query": request.query,
+            "mode": "hybrid",
+            "embedding_dimensions": len(vector),
+            "abstained": abstained,
+            "decision": ambiguity["decision"],
+            "message": "The available documents do not contain sufficiently relevant evidence." if abstained else None,
+            "clarification": ambiguity if ambiguity["decision"] == "clarify" else None,
+            "pipeline": {
+                "vector_candidates": len(vector_matches),
+                "text_candidates": len(text_matches),
+                "fused_candidates": len(fused),
+                "reranked_candidates": len(reranked),
+                "minimum_score": minimum_score,
+                "top_reranker_score": reranked[0]["reranker_score"] if reranked else None,
+                "ambiguity_status": ambiguity["status"],
+            },
+            "results": [_serialize_result(row, row["reranker_score"]) for row in accepted],
+        }
+    except HTTPException:
+        raise
+    except PyMongoError as exc:
+        raise HTTPException(status_code=500, detail=f"Search failed: {exc}")
+
+
+@app.post("/evaluations/run")
+@traceable(name="retrieval-evaluation", run_type="chain")
+def run_evaluation() -> Dict[str, Any]:
+    started = time.perf_counter()
+    cases = []
+    for suite, case in load_cases():
+        response = search(SearchRequest(
+            query=case["question"],
+            limit=8,
+            mode="hybrid",
+            include_superseded=case["expected_behavior"] == "retrieve_historical_answer",
+        ))
+        passed, detail = assess_case(case, response)
+        cases.append({
+            "suite": suite,
+            "id": case["id"],
+            "question": case["question"],
+            "expected_behavior": case["expected_behavior"],
+            "passed": passed,
+            "detail": detail,
+            "abstained": response["abstained"],
+            "decision": response["decision"],
+            "ambiguity_status": response["pipeline"]["ambiguity_status"],
+            "top_results": [
+                {"filename": item["filename"], "score": item["score"]}
+                for item in response["results"][:3]
+            ],
+        })
+    passed_count = sum(case["passed"] for case in cases)
+    return {
+        "passed": passed_count,
+        "failed": len(cases) - passed_count,
+        "total": len(cases),
+        "duration_ms": round((time.perf_counter() - started) * 1000),
+        "cases": cases,
     }

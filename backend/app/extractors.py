@@ -112,6 +112,22 @@ def _extract_xlsx(filename: str, data: bytes) -> List[Document]:
 def _extract_csv(filename: str, data: bytes) -> List[Document]:
     text = _decode(data)
     rows = list(csv.reader(io.StringIO(text)))
-    normalized = "\n".join(" | ".join(cell.strip() for cell in row) for row in rows)
-    return [Document(page_content=normalized, metadata={"source": filename})]
-
+    if not rows:
+        return []
+    headers = [cell.strip() or f"column_{index + 1}" for index, cell in enumerate(rows[0])]
+    output: List[Document] = []
+    for row_number, row in enumerate(rows[1:], start=2):
+        values = [cell.strip() for cell in row]
+        if not any(values):
+            continue
+        labelled = "; ".join(
+            f"{header}: {values[index] if index < len(values) else ''}"
+            for index, header in enumerate(headers)
+        )
+        output.append(
+            Document(
+                page_content=labelled,
+                metadata={"source": filename, "section": f"CSV row {row_number}"},
+            )
+        )
+    return output
