@@ -51,6 +51,17 @@ type Health = {
   embedding_dimensions: number;
 };
 
+type InspectorTab = "overview" | "chunks" | "storage";
+type AppView = "documents" | "retrieve";
+
+const ingestionStages = [
+  ["Stored", 8],
+  ["Extracted", 40],
+  ["Chunked", 56],
+  ["Embedded", 80],
+  ["Indexed", 100],
+] as const;
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, init);
   if (!response.ok) {
@@ -67,10 +78,17 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
 }
 
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 function VectorPreview({ values }: { values: number[] }) {
   return (
     <code className="vector-preview">
-      [{values.map((value) => value.toFixed(4)).join(", ")}{values.length ? ", …" : ""}]
+      [{values.map((value) => value.toFixed(5)).join(", ")}{values.length ? ", …" : ""}]
     </code>
   );
 }
@@ -79,7 +97,7 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
-  const [selectedId, setSelectedId] = useState<string>("");
+  const [selectedId, setSelectedId] = useState("");
   const [chunks, setChunks] = useState<Chunk[]>([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -90,6 +108,9 @@ export default function Home() {
   const [deleteTarget, setDeleteTarget] = useState<DocumentRecord | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [error, setError] = useState("");
+  const [activeView, setActiveView] = useState<AppView>("documents");
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("overview");
+  const [expandedVectors, setExpandedVectors] = useState<Set<string>>(new Set());
 
   const selected = useMemo(
     () => documents.find((document) => document.id === selectedId) ?? null,
@@ -126,7 +147,7 @@ export default function Home() {
       setChunks([]);
       return;
     }
-    api<Chunk[]>(`/documents/${selectedId}/chunks?limit=6`)
+    api<Chunk[]>(`/documents/${selectedId}/chunks?limit=20`)
       .then(setChunks)
       .catch(() => setChunks([]));
   }, [selectedId, selected?.status, selected?.chunk_count]);
@@ -143,6 +164,8 @@ export default function Home() {
         const created = await api<DocumentRecord>("/documents", { method: "POST", body: form });
         setSelectedId(created.id);
       }
+      setActiveView("documents");
+      setInspectorTab("overview");
       await refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Upload failed.");
@@ -207,14 +230,35 @@ export default function Home() {
     }
   }
 
+  function selectDocument(documentId: string) {
+    setSelectedId(documentId);
+    setActiveView("documents");
+    setInspectorTab("overview");
+  }
+
+  function toggleVector(id: string) {
+    setExpandedVectors((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   return (
-    <main>
-      <header className="topbar">
-        <div className="brand-mark">R</div>
-        <div>
-          <p className="eyebrow">LOCAL KNOWLEDGE WORKBENCH</p>
-          <h1>RAG Studio</h1>
+    <main className="app-shell">
+      <header className="app-header">
+        <div className="product-name">
+          <span className="product-icon">R</span>
+          <div>
+            <h1>RAG Studio</h1>
+            <p>Local document retrieval</p>
+          </div>
         </div>
+        <nav className="primary-nav" aria-label="Primary navigation">
+          <button className={activeView === "documents" ? "active" : ""} onClick={() => setActiveView("documents")}>Documents</button>
+          <button className={activeView === "retrieve" ? "active" : ""} onClick={() => setActiveView("retrieve")}>Retrieve</button>
+        </nav>
         <div className={`connection ${health ? "online" : "offline"}`}>
           <span />
           {health ? `MongoDB ${health.vector_index}` : "API offline"}
@@ -224,29 +268,19 @@ export default function Home() {
       {error && (
         <div className="error-banner" role="alert">
           <span>{error}</span>
-          <button onClick={() => setError("")} aria-label="Dismiss error">×</button>
+          <button onClick={() => setError("")} aria-label="Dismiss error">Close</button>
         </div>
       )}
 
-      <section className="hero">
-        <div>
-          <p className="kicker">Turn files into searchable knowledge</p>
-          <h2>See every step from<br />raw document to vector.</h2>
-          <p className="hero-copy">
-            Drop in a document, inspect its extracted chunks and embeddings, then retrieve the most relevant passages in natural language.
-          </p>
-        </div>
-        <div className="model-card">
-          <span>EMBEDDING ENGINE</span>
-          <strong>{health?.embedding_model.split("/").pop() ?? "Loading…"}</strong>
-          <small>{health?.embedding_dimensions ?? 384} dimensions · runs locally</small>
-        </div>
-      </section>
+      <div className="workspace">
+        <aside className="document-sidebar">
+          <div className="sidebar-heading">
+            <h2>Documents</h2>
+            <span>{documents.length}</span>
+          </div>
 
-      <section className="workspace-grid">
-        <div className="left-column">
           <div
-            className={`drop-zone ${dragging ? "dragging" : ""}`}
+            className={`upload-control ${dragging ? "dragging" : ""}`}
             onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
             onDragOver={(event) => event.preventDefault()}
             onDragLeave={() => setDragging(false)}
@@ -257,157 +291,223 @@ export default function Home() {
             onKeyDown={(event) => event.key === "Enter" && inputRef.current?.click()}
           >
             <input ref={inputRef} type="file" multiple onChange={handleFileInput} hidden />
-            <div className="upload-icon">↥</div>
-            <h3>{uploading ? "Uploading…" : "Drop documents here"}</h3>
-            <p>or click to browse · up to 50 MB each</p>
-            <small>PDF · DOCX · PPTX · XLSX · TXT · MD · CSV · JSON · HTML · source code</small>
-          </div>
-
-          <div className="panel documents-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">LIBRARY</p>
-                <h3>Documents</h3>
-              </div>
-              <span className="count">{documents.length}</span>
-            </div>
-            <div className="document-list">
-              {!documents.length && <p className="empty">Your stored documents will appear here.</p>}
-              {documents.map((document) => (
-                <button
-                  key={document.id}
-                  className={`document-row ${selectedId === document.id ? "selected" : ""}`}
-                  onClick={() => setSelectedId(document.id)}
-                >
-                  <span className="file-badge">{document.filename.split(".").pop()?.slice(0, 4).toUpperCase()}</span>
-                  <span className="document-main">
-                    <strong>{document.filename}</strong>
-                    <small>{formatBytes(document.size_bytes)} · {document.chunk_count} chunks</small>
-                  </span>
-                  <span className={`status-pill ${document.status}`}>{document.stage}</span>
-                </button>
-              ))}
+            <span className="add-icon">+</span>
+            <div>
+              <strong>{uploading ? "Uploading files" : "Add documents"}</strong>
+              <small>Drop files or browse</small>
             </div>
           </div>
-        </div>
 
-        <div className="right-column">
-          <div className="panel inspector">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">INGESTION INSPECTOR</p>
-                <h3>{selected?.filename ?? "Select a document"}</h3>
+          <div className="document-list">
+            {!documents.length && <p className="empty-sidebar">No documents stored.</p>}
+            {documents.map((document) => (
+              <button
+                key={document.id}
+                className={`document-row ${selectedId === document.id ? "selected" : ""}`}
+                onClick={() => selectDocument(document.id)}
+              >
+                <span className="file-type">{document.filename.split(".").pop()?.slice(0, 4).toUpperCase()}</span>
+                <span className="document-summary">
+                  <strong title={document.filename}>{document.filename}</strong>
+                  <small>{formatBytes(document.size_bytes)} · {document.chunk_count} chunks</small>
+                </span>
+                <span className={`status-dot ${document.status}`} title={document.stage} />
+              </button>
+            ))}
+          </div>
+
+          <div className="sidebar-footer">
+            <span>Embedding model</span>
+            <strong>{health?.embedding_model.split("/").pop() ?? "Unavailable"}</strong>
+            <small>{health?.embedding_dimensions ?? 384} dimensions · local</small>
+          </div>
+        </aside>
+
+        <section className="main-panel">
+          {activeView === "documents" ? (
+            selected ? (
+              <div className="document-view">
+                <header className="content-header">
+                  <div>
+                    <p className="section-label">Document inspector</p>
+                    <h2>{selected.filename}</h2>
+                    <p>{formatBytes(selected.size_bytes)} · uploaded {formatDate(selected.created_at)}</p>
+                  </div>
+                  <div className="document-actions">
+                    <a className="secondary-button" href={`${API_URL}/documents/${selected.id}/raw`}>Download raw</a>
+                    <button
+                      className="danger-button"
+                      disabled={selected.status === "processing" || selected.status === "deleting"}
+                      onClick={() => setDeleteTarget(selected)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </header>
+
+                <div className="ingestion-status">
+                  <div className="status-summary">
+                    <span className={`status-dot ${selected.status}`} />
+                    <strong>{selected.stage}</strong>
+                    <span>{selected.progress}%</span>
+                  </div>
+                  <div className="progress-track"><span style={{ width: `${selected.progress}%` }} /></div>
+                  <div className="process-steps">
+                    {ingestionStages.map(([label, threshold]) => (
+                      <div className={selected.progress >= threshold ? "complete" : ""} key={label}>
+                        <span>{selected.progress >= threshold ? "✓" : "○"}</span>
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                  {selected.error && <p className="inline-error">{selected.error}</p>}
+                </div>
+
+                <div className="inspector-tabs" role="tablist">
+                  {(["overview", "chunks", "storage"] as InspectorTab[]).map((tab) => (
+                    <button
+                      role="tab"
+                      aria-selected={inspectorTab === tab}
+                      className={inspectorTab === tab ? "active" : ""}
+                      onClick={() => setInspectorTab(tab)}
+                      key={tab}
+                    >
+                      {tab[0].toUpperCase() + tab.slice(1)}
+                      {tab === "chunks" && <span>{selected.chunk_count}</span>}
+                    </button>
+                  ))}
+                </div>
+
+                {inspectorTab === "overview" && (
+                  <div className="tab-content">
+                    <h3>Document details</h3>
+                    <dl className="property-list">
+                      <div><dt>Status</dt><dd><span className={`status-dot ${selected.status}`} />{selected.stage}</dd></div>
+                      <div><dt>Content type</dt><dd>{selected.content_type}</dd></div>
+                      <div><dt>Extracted text</dt><dd>{selected.character_count.toLocaleString()} characters</dd></div>
+                      <div><dt>Chunks</dt><dd>{selected.chunk_count.toLocaleString()}</dd></div>
+                      <div><dt>Vectors</dt><dd>{selected.vector_count.toLocaleString()}</dd></div>
+                      <div><dt>Vector dimensions</dt><dd>{selected.embedding_dimensions ?? health?.embedding_dimensions ?? 384}</dd></div>
+                      <div><dt>GridFS file ID</dt><dd><code>{selected.raw_file_id}</code></dd></div>
+                      <div><dt>Document ID</dt><dd><code>{selected.id}</code></dd></div>
+                    </dl>
+                  </div>
+                )}
+
+                {inspectorTab === "chunks" && (
+                  <div className="tab-content">
+                    <div className="tab-heading">
+                      <div><h3>Extracted chunks</h3><p>Text segments stored in the MongoDB chunks collection.</p></div>
+                    </div>
+                    <div className="chunk-table">
+                      {!chunks.length && <p className="empty-state">Chunks appear when vectorization completes.</p>}
+                      {chunks.map((chunk) => (
+                        <article className="chunk-row" key={chunk.id}>
+                          <div className="chunk-index">{chunk.chunk_index + 1}</div>
+                          <div className="chunk-body">
+                            <div className="chunk-meta">
+                              <span>{chunk.page ? `Page ${chunk.page}` : chunk.section ?? "Document"}</span>
+                              <span>{chunk.embedding_dimensions} dimensions</span>
+                              <button onClick={() => toggleVector(chunk.id)}>
+                                {expandedVectors.has(chunk.id) ? "Hide vector" : "Inspect vector"}
+                              </button>
+                            </div>
+                            <p>{chunk.content}</p>
+                            {expandedVectors.has(chunk.id) && <VectorPreview values={chunk.embedding_preview} />}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {inspectorTab === "storage" && (
+                  <div className="tab-content">
+                    <h3>MongoDB storage map</h3>
+                    <p className="tab-description">This shows where each representation of the selected document lives.</p>
+                    <table className="storage-table">
+                      <thead><tr><th>Collection</th><th>Stored data</th><th>Records</th></tr></thead>
+                      <tbody>
+                        <tr><td><code>documents</code></td><td>Status, metadata, and GridFS reference</td><td>1</td></tr>
+                        <tr><td><code>raw_files.files</code></td><td>Original filename and file metadata</td><td>1</td></tr>
+                        <tr><td><code>raw_files.chunks</code></td><td>Original binary file content</td><td>GridFS managed</td></tr>
+                        <tr><td><code>chunks</code></td><td>Extracted text, sources, and vectors</td><td>{selected.chunk_count}</td></tr>
+                        <tr><td><code>chunk_vector_index</code></td><td>Search index over stored embeddings</td><td>{selected.vector_count}</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-              {selected && (
-                <div className="document-actions">
-                  <a className="raw-link" href={`${API_URL}/documents/${selected.id}/raw`}>Download raw ↗</a>
-                  <button
-                    className="delete-link"
-                    disabled={selected.status === "processing" || selected.status === "deleting"}
-                    onClick={() => setDeleteTarget(selected)}
-                  >
-                    Delete
+            ) : (
+              <div className="blank-state">
+                <h2>No document selected</h2>
+                <p>Add a document from the sidebar to inspect its stored data.</p>
+                <button className="primary-button" onClick={() => inputRef.current?.click()}>Add document</button>
+              </div>
+            )
+          ) : (
+            <div className="retrieval-view">
+              <header className="content-header compact">
+                <div>
+                  <p className="section-label">Semantic search</p>
+                  <h2>Retrieve passages</h2>
+                  <p>Search document meaning using the same embedding model used during ingestion.</p>
+                </div>
+              </header>
+
+              <form className="search-form" onSubmit={handleSearch}>
+                <label htmlFor="retrieval-query">Question or search phrase</label>
+                <textarea
+                  id="retrieval-query"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="What do the documents say about annual leave?"
+                  rows={3}
+                />
+                <div className="search-controls">
+                  <label>
+                    Search scope
+                    <select value={scope} onChange={(event) => setScope(event.target.value)}>
+                      <option value="all">All ready documents</option>
+                      {documents.filter((document) => document.status === "ready").map((document) => (
+                        <option value={document.id} key={document.id}>{document.filename}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button className="primary-button" type="submit" disabled={searching || query.trim().length < 2}>
+                    {searching ? "Searching" : "Retrieve"}
                   </button>
                 </div>
-              )}
-            </div>
+              </form>
 
-            {selected ? (
-              <>
-                <div className="progress-track"><span style={{ width: `${selected.progress}%` }} /></div>
-                <div className="stage-grid">
-                  {[
-                    ["01", "Raw stored", 8],
-                    ["02", "Text extracted", 40],
-                    ["03", "Chunks created", 56],
-                    ["04", "Vectors generated", 80],
-                    ["05", "MongoDB indexed", 100],
-                  ].map(([number, label, threshold]) => (
-                    <div key={String(number)} className={selected.progress >= Number(threshold) ? "stage complete" : "stage"}>
-                      <span>{number}</span><small>{label}</small>
-                    </div>
-                  ))}
-                </div>
-                {selected.error && <p className="inline-error">{selected.error}</p>}
-                <div className="metrics">
-                  <div><span>Raw file</span><strong>{formatBytes(selected.size_bytes)}</strong><small>GridFS · {selected.raw_file_id.slice(-8)}</small></div>
-                  <div><span>Extracted</span><strong>{selected.character_count.toLocaleString()}</strong><small>characters</small></div>
-                  <div><span>Vectors</span><strong>{selected.vector_count.toLocaleString()}</strong><small>{selected.embedding_dimensions ?? 384} dimensions each</small></div>
-                </div>
-                <div className="chunk-heading">
-                  <strong>Stored chunk samples</strong>
-                  <small>Text and vector preview from MongoDB</small>
-                </div>
-                <div className="chunk-list">
-                  {!chunks.length && <p className="empty">Chunks appear here when vectorization completes.</p>}
-                  {chunks.map((chunk) => (
-                    <article className="chunk-card" key={chunk.id}>
-                      <div className="chunk-meta">
-                        <span>CHUNK {String(chunk.chunk_index + 1).padStart(3, "0")}</span>
-                        <span>{chunk.page ? `PAGE ${chunk.page}` : chunk.section ?? "DOCUMENT"}</span>
-                      </div>
-                      <p>{chunk.content}</p>
-                      <VectorPreview values={chunk.embedding_preview} />
-                    </article>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="empty large">Upload a document to inspect how it is stored.</p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="retrieval-section">
-        <div className="retrieval-intro">
-          <p className="eyebrow">SEMANTIC RETRIEVAL</p>
-          <h2>Ask in your own words.</h2>
-          <p>We embed your question and return the closest passages. Scores show semantic similarity—not keyword frequency.</p>
-        </div>
-        <form className="search-box" onSubmit={handleSearch}>
-          <textarea
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="What does the document say about…?"
-            rows={3}
-          />
-          <div className="search-controls">
-            <select value={scope} onChange={(event) => setScope(event.target.value)} aria-label="Search scope">
-              <option value="all">All ready documents</option>
-              {documents.filter((document) => document.status === "ready").map((document) => (
-                <option value={document.id} key={document.id}>{document.filename}</option>
-              ))}
-            </select>
-            <button type="submit" disabled={searching || query.trim().length < 2}>
-              {searching ? "Searching…" : "Retrieve passages →"}
-            </button>
-          </div>
-        </form>
-
-        <div className="results">
-          {results.map((result, index) => (
-            <article className="result-card" key={result.id}>
-              <div className="rank">{String(index + 1).padStart(2, "0")}</div>
-              <div className="result-body">
-                <div className="result-meta">
-                  <strong>{result.filename}</strong>
-                  <span>{result.page ? `Page ${result.page}` : result.section ?? `Chunk ${result.chunk_index + 1}`}</span>
-                  <span className="score">{(result.score * 100).toFixed(1)}% match</span>
-                </div>
-                <p>{result.content}</p>
-                <VectorPreview values={result.embedding_preview} />
+              <div className="result-header">
+                <h3>Results</h3>
+                <span>{results.length ? `${results.length} passages` : "Run a search to see matches"}</span>
               </div>
-            </article>
-          ))}
-          {!results.length && <p className="empty result-empty">Retrieved passages will appear here with their source and similarity score.</p>}
-        </div>
-      </section>
-
-      <footer>
-        <span>LOCAL RAG STUDIO</span>
-        <span>Raw files + vectors in MongoDB · Embeddings on device</span>
-      </footer>
+              <div className="result-list">
+                {results.map((result, index) => (
+                  <article className="result-row" key={result.id}>
+                    <div className="result-rank">{index + 1}</div>
+                    <div className="result-body">
+                      <div className="result-meta">
+                        <button onClick={() => selectDocument(result.document_id)}>{result.filename}</button>
+                        <span>{result.page ? `Page ${result.page}` : result.section ?? `Chunk ${result.chunk_index + 1}`}</span>
+                        <strong>{(result.score * 100).toFixed(1)}% match</strong>
+                      </div>
+                      <p>{result.content}</p>
+                      <button className="vector-toggle" onClick={() => toggleVector(result.id)}>
+                        {expandedVectors.has(result.id) ? "Hide vector preview" : "Inspect vector preview"}
+                      </button>
+                      {expandedVectors.has(result.id) && <VectorPreview values={result.embedding_preview} />}
+                    </div>
+                  </article>
+                ))}
+                {!results.length && <div className="empty-state">Retrieved passages will appear here with source locations and similarity scores.</div>}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
 
       {deleteTarget && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => !deleting && setDeleteTarget(null)}>
@@ -420,7 +520,6 @@ export default function Home() {
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="warning-mark">!</div>
-            <p className="eyebrow">PERMANENT DELETION</p>
             <h2 id="delete-title">Delete this document?</h2>
             <p id="delete-description">
               <strong>{deleteTarget.filename}</strong> will be permanently removed. This action cannot be undone.
@@ -428,13 +527,13 @@ export default function Home() {
             <ul>
               <li>The original {formatBytes(deleteTarget.size_bytes)} file in GridFS</li>
               <li>{deleteTarget.chunk_count} extracted text chunks</li>
-              <li>{deleteTarget.vector_count} embedding vectors and their search-index entries</li>
+              <li>{deleteTarget.vector_count} embedding vectors and search index entries</li>
               <li>All document metadata and ingestion history</li>
             </ul>
             <div className="modal-actions">
-              <button className="cancel-button" disabled={deleting} onClick={() => setDeleteTarget(null)}>Keep document</button>
+              <button className="secondary-button" disabled={deleting} onClick={() => setDeleteTarget(null)}>Keep document</button>
               <button className="confirm-delete" disabled={deleting} onClick={handleDelete}>
-                {deleting ? "Deleting everything…" : "Delete permanently"}
+                {deleting ? "Deleting everything" : "Delete permanently"}
               </button>
             </div>
           </section>

@@ -150,14 +150,14 @@ docker ps
 
 Keep MongoDB running and use two terminal windows.
 
-Terminal 1—start the API:
+Terminal 1: start the API:
 
 ```bash
 cd ~/path/to/rag
 make api
 ```
 
-Terminal 2—start the UI:
+Terminal 2: start the UI:
 
 ```bash
 cd ~/path/to/rag
