@@ -1,0 +1,138 @@
+{
+  "corpus": "Northstar Analytics learning corpus",
+  "version": "1.0",
+  "instructions": "Do not upload this file. Check whether an expected source appears in the top three retrieved passages and whether the passage supports the expected fact or behavior.",
+  "cases": [
+    {
+      "id": "direct-annual-entitlement",
+      "category": "direct_fact",
+      "question": "How many annual leave days does a full-time employee receive in 2026?",
+      "expected_behavior": "retrieve_answer",
+      "expected_fact": "25 working days, excluding public holidays",
+      "expected_sources": ["annual-leave-policy-2026.md"],
+      "risk": "The superseded 2024 policy contains a competing value of 20 days."
+    },
+    {
+      "id": "paraphrase-remote-days",
+      "category": "paraphrase",
+      "question": "How often can a hybrid employee work away from the office each week?",
+      "expected_behavior": "retrieve_answer",
+      "expected_fact": "Up to three days per working week",
+      "expected_sources": ["remote-and-hybrid-work-policy.md"]
+    },
+    {
+      "id": "exact-security-code",
+      "category": "exact_identifier",
+      "question": "What is policy SEC-104 about?",
+      "expected_behavior": "retrieve_answer",
+      "expected_fact": "Information Security Policy",
+      "expected_sources": ["information-security-policy.md"],
+      "risk": "Dense-vector retrieval may be weaker than keyword search for exact identifiers."
+    },
+    {
+      "id": "exact-receipt-threshold",
+      "category": "exact_number",
+      "question": "At what amount is an itemized expense receipt required?",
+      "expected_behavior": "retrieve_answer",
+      "expected_fact": "For any individual expense over EUR 25",
+      "expected_sources": ["travel-and-expense-policy.md"]
+    },
+    {
+      "id": "table-valencia-hotel",
+      "category": "table_lookup",
+      "question": "What is the nightly hotel cap for business travel to Valencia?",
+      "expected_behavior": "retrieve_answer",
+      "expected_fact": "EUR 145 per night",
+      "expected_sources": ["regional-travel-rates.csv"],
+      "risk": "Table serialization and chunk boundaries can detach a value from its row heading."
+    },
+    {
+      "id": "table-paris-meals",
+      "category": "table_lookup",
+      "question": "What daily meal amount applies in Paris?",
+      "expected_behavior": "retrieve_answer",
+      "expected_fact": "EUR 95 per day",
+      "expected_sources": ["regional-travel-rates.csv"]
+    },
+    {
+      "id": "version-2024-entitlement",
+      "category": "temporal_version",
+      "question": "What was the annual leave entitlement under the 2024 policy?",
+      "expected_behavior": "retrieve_historical_answer",
+      "expected_fact": "20 working days",
+      "expected_sources": ["annual-leave-policy-2024-superseded.md"]
+    },
+    {
+      "id": "amended-carryover",
+      "category": "conflicting_sources",
+      "question": "How many unused leave days can an employee carry from 2026 into 2027?",
+      "expected_behavior": "prefer_later_controlling_source",
+      "expected_fact": "Eight days, usable by 30 April 2027",
+      "expected_sources": ["annual-leave-amendment-2026-07.md"],
+      "competing_sources": ["annual-leave-policy-2026.md"],
+      "risk": "Similarity alone does not establish which document controls."
+    },
+    {
+      "id": "cross-document-stolen-laptop",
+      "category": "multi_document",
+      "question": "What should I do if a company laptop containing Restricted data is stolen?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_fact": "Report immediately and within 15 minutes through the security hotline, explain the likely classification, preserve evidence, and do not independently wipe the device",
+      "expected_sources": [
+        "information-security-policy.md",
+        "data-classification-and-retention-policy.md",
+        "security-incident-response-procedure.md"
+      ]
+    },
+    {
+      "id": "approval-contractor",
+      "category": "negation",
+      "question": "Can a contractor who leads a project approve a EUR 100 equipment purchase?",
+      "expected_behavior": "retrieve_answer",
+      "expected_fact": "No. Contractors cannot approve equipment purchases; an employee manager must approve an item up to EUR 150.",
+      "expected_sources": ["equipment-request-procedure.md"],
+      "risk": "Embeddings capture topical similarity more reliably than logical negation."
+    },
+    {
+      "id": "remote-country-limit",
+      "category": "direct_fact",
+      "question": "For how long may I work remotely from another country?",
+      "expected_behavior": "retrieve_answer",
+      "expected_fact": "Up to 20 working days in a rolling 12-month period, subject to approval",
+      "expected_sources": ["remote-and-hybrid-work-policy.md"]
+    },
+    {
+      "id": "incident-p1-target",
+      "category": "table_lookup",
+      "question": "How quickly must Security acknowledge a P1 incident?",
+      "expected_behavior": "retrieve_answer",
+      "expected_fact": "10 minutes",
+      "expected_sources": ["security-incident-response-procedure.md"]
+    },
+    {
+      "id": "ambiguous-valencia-allowance",
+      "category": "ambiguous",
+      "question": "What is the allowance for Valencia?",
+      "expected_behavior": "request_clarification",
+      "expected_fact": "The question could refer to the EUR 60 travel meal allowance, EUR 145 hotel cap, or EUR 45 monthly bicycle allowance.",
+      "expected_sources": ["regional-travel-rates.csv", "office-facilities-guide.md"]
+    },
+    {
+      "id": "missing-dental-benefit",
+      "category": "unanswerable",
+      "question": "Does Northstar provide dental insurance?",
+      "expected_behavior": "abstain",
+      "expected_fact": null,
+      "expected_sources": [],
+      "risk": "Nearest-neighbor search always returns something unless the application applies a threshold."
+    },
+    {
+      "id": "missing-parental-leave",
+      "category": "unanswerable",
+      "question": "How many weeks of paid parental leave are provided?",
+      "expected_behavior": "abstain",
+      "expected_fact": null,
+      "expected_sources": []
+    }
+  ]
+}

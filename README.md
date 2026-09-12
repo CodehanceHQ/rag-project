@@ -2,6 +2,8 @@
 
 A local-first document ingestion and semantic retrieval application. Original files are stored in MongoDB GridFS, while extracted chunks, metadata, and Hugging Face embeddings are stored in a MongoDB collection with a Vector Search index.
 
+The repository includes a fictional [RAG learning corpus](sample-documents/README.md), a ground-truth [evaluation question set](evaluations/questions.json), and an [evaluation guide](evaluations/README.md). The corpus demonstrates direct retrieval, paraphrases, exact values, tables, conflicting policy versions, amendments, multi-document questions, ambiguity, irrelevant noise, and questions that should not be answered.
+
 ## Architecture
 
 - Next.js UI: drag-and-drop, ingestion progress, storage inspection, retrieval

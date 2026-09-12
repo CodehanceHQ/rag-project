@@ -1,0 +1,9 @@
+city,country,currency,hotel_cap_per_night,meal_allowance_per_day,effective_from
+Madrid,Spain,EUR,180,65,2026-03-01
+Barcelona,Spain,EUR,195,65,2026-03-01
+Valencia,Spain,EUR,145,60,2026-03-01
+Lisbon,Portugal,EUR,170,75,2026-03-01
+Paris,France,EUR,240,95,2026-03-01
+Berlin,Germany,EUR,210,90,2026-03-01
+London,United Kingdom,GBP,225,85,2026-03-01
+New York,United States,USD,310,110,2026-03-01
