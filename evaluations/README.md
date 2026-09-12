@@ -1,6 +1,15 @@
 # Evaluation guide
 
-The cases in `questions.json` provide known expectations for the fictional Northstar corpus. Keep this directory out of MongoDB so the expected answers cannot be retrieved as source material.
+The evaluation files provide known expectations for the fictional Northstar corpus. Keep this directory out of MongoDB so the expected answers cannot be retrieved as source material.
+
+## Evaluation suites
+
+| File | Upload these document groups | Purpose |
+| --- | --- | --- |
+| `questions.json` | `policies`, `procedures`, `reference` | Establish a clean retrieval baseline without deliberately conflicting or irrelevant sources |
+| `conflict-and-noise-questions.json` | All document groups | Test obsolete policies, controlling amendments, ambiguous wording, and topically similar noise |
+
+Run the baseline first. Save its ranks and scores, then upload `conflicting-versions` and `noise` and run the challenge suite. Several challenge questions deliberately repeat baseline questions so you can compare how their ranking changes.
 
 ## Evaluate retrieval first
 
@@ -35,8 +44,8 @@ An answer can sound excellent while relying on the wrong retrieved passage. Keep
 
 | Run | Corpus | Chunk size | Overlap | Search method | Recall@3 | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Current documents | Default | Default | Vector |  |  |
-| 2 | Add old policy | Default | Default | Vector |  |  |
-| 3 | Add amendment and noise | Default | Default | Vector |  |  |
+| 1 | Baseline groups | Default | Default | Vector |  |  |
+| 2 | Add conflicting versions | Default | Default | Vector |  |  |
+| 3 | Add noise | Default | Default | Vector |  |  |
 
 Change one variable per run. Useful future comparisons include smaller and larger chunks, metadata filters, hybrid keyword and vector search, a reranker, and different embedding models.

@@ -4,7 +4,7 @@ This directory contains fictional company documents designed to make the strengt
 
 ## What to upload
 
-Start by uploading the files in `policies/`, `procedures/`, and `reference/`. Ask the baseline questions in `../evaluations/questions.json`, then add `conflicting-versions/` and `noise/` to see how retrieval changes.
+Start by uploading the files in `policies/`, `procedures/`, and `reference/`. Run the baseline questions in `../evaluations/questions.json`. Then add `conflicting-versions/` and `noise/` and run `../evaluations/conflict-and-noise-questions.json` to see how retrieval changes.
 
 Do not upload the `evaluations` directory. It contains expected answers and would leak the answers into the searchable collection.
 
@@ -65,10 +65,10 @@ No document answers this. The current application will still return nearest pass
 
 ## A useful test routine
 
-1. Upload only the current policies and run the baseline questions.
+1. Upload only `policies`, `procedures`, and `reference`, then run `questions.json`.
 2. Record the top result, its score, and whether the expected source appears in the top three.
-3. Add the superseded policy and amendment, then repeat the version-sensitive questions.
-4. Add the noise document and repeat ambiguous and missing-answer questions.
+3. Add the superseded policy, amendment, and noise document.
+4. Run `conflict-and-noise-questions.json` and compare repeated questions with the baseline.
 5. Change one variable at a time, such as chunk size, overlap, result count, embedding model, or query wording.
 6. Delete a source through the application and confirm that it no longer appears in retrieval or MongoDB.
 

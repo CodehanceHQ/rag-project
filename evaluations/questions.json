@@ -1,7 +1,10 @@
 {
   "corpus": "Northstar Analytics learning corpus",
   "version": "1.0",
-  "instructions": "Do not upload this file. Check whether an expected source appears in the top three retrieved passages and whether the passage supports the expected fact or behavior.",
+  "suite": "baseline",
+  "required_document_groups": ["policies", "procedures", "reference"],
+  "excluded_document_groups": ["conflicting-versions", "noise"],
+  "instructions": "Do not upload this file. Upload only the required document groups, then check whether an expected source appears in the top three retrieved passages and whether the passage supports the expected fact or behavior.",
   "cases": [
     {
       "id": "direct-annual-entitlement",
@@ -9,8 +12,7 @@
       "question": "How many annual leave days does a full-time employee receive in 2026?",
       "expected_behavior": "retrieve_answer",
       "expected_fact": "25 working days, excluding public holidays",
-      "expected_sources": ["annual-leave-policy-2026.md"],
-      "risk": "The superseded 2024 policy contains a competing value of 20 days."
+      "expected_sources": ["annual-leave-policy-2026.md"]
     },
     {
       "id": "paraphrase-remote-days",
@@ -55,24 +57,6 @@
       "expected_sources": ["regional-travel-rates.csv"]
     },
     {
-      "id": "version-2024-entitlement",
-      "category": "temporal_version",
-      "question": "What was the annual leave entitlement under the 2024 policy?",
-      "expected_behavior": "retrieve_historical_answer",
-      "expected_fact": "20 working days",
-      "expected_sources": ["annual-leave-policy-2024-superseded.md"]
-    },
-    {
-      "id": "amended-carryover",
-      "category": "conflicting_sources",
-      "question": "How many unused leave days can an employee carry from 2026 into 2027?",
-      "expected_behavior": "prefer_later_controlling_source",
-      "expected_fact": "Eight days, usable by 30 April 2027",
-      "expected_sources": ["annual-leave-amendment-2026-07.md"],
-      "competing_sources": ["annual-leave-policy-2026.md"],
-      "risk": "Similarity alone does not establish which document controls."
-    },
-    {
       "id": "cross-document-stolen-laptop",
       "category": "multi_document",
       "question": "What should I do if a company laptop containing Restricted data is stolen?",
@@ -108,14 +92,6 @@
       "expected_behavior": "retrieve_answer",
       "expected_fact": "10 minutes",
       "expected_sources": ["security-incident-response-procedure.md"]
-    },
-    {
-      "id": "ambiguous-valencia-allowance",
-      "category": "ambiguous",
-      "question": "What is the allowance for Valencia?",
-      "expected_behavior": "request_clarification",
-      "expected_fact": "The question could refer to the EUR 60 travel meal allowance, EUR 145 hotel cap, or EUR 45 monthly bicycle allowance.",
-      "expected_sources": ["regional-travel-rates.csv", "office-facilities-guide.md"]
     },
     {
       "id": "missing-dental-benefit",
