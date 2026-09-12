@@ -8,7 +8,7 @@
       "id": "metadata-filter-current-policy",
       "problem": "Dense similarity can rank a superseded policy above the current policy because their wording is almost identical.",
       "capability": "metadata_filters",
-      "implementation_status": "pending",
+      "implementation_status": "available",
       "required_document_groups": ["policies", "conflicting-versions"],
       "query": "How many annual leave days does a full-time employee receive in 2026?",
       "control": {
@@ -29,7 +29,7 @@
       "id": "hybrid-search-exact-policy-id",
       "problem": "Dense embeddings can underweight exact identifiers even when they capture the general topic.",
       "capability": "hybrid_search",
-      "implementation_status": "pending",
+      "implementation_status": "available",
       "required_document_groups": ["policies", "procedures", "reference"],
       "query": "What is SEC-104?",
       "control": {
@@ -51,7 +51,7 @@
       "id": "structure-aware-csv-parsing",
       "problem": "A generic character splitter can separate CSV rows from their column headings, leaving numeric values without meaning.",
       "capability": "better_parsing",
-      "implementation_status": "pending",
+      "implementation_status": "available",
       "required_document_groups": ["parsing-challenges"],
       "query": "For a Customer Support employee in Portugal, what are the probation and notice periods?",
       "expected_fact": "120 days of probation and 30 days of notice",
@@ -74,7 +74,7 @@
       "id": "rerank-travel-result-over-office-noise",
       "problem": "A topically similar facilities document can compete with the correct travel-rate source.",
       "capability": "reranking",
-      "implementation_status": "pending",
+      "implementation_status": "available",
       "required_document_groups": ["reference", "noise"],
       "query": "What is the nightly hotel cap for business travel to Valencia?",
       "expected_fact": "EUR 145 per night",
@@ -84,7 +84,7 @@
         "measurement": "Record the ranks of regional-travel-rates.csv and office-facilities-guide.md"
       },
       "treatment": {
-        "configuration": "Retrieve 20 vector candidates and use a query-passage reranker before returning the best five"
+        "configuration": "Fuse up to 30 vector and full-text candidates, then use a query-passage cross-encoder before returning the best results"
       },
       "success_criteria": [
         "regional-travel-rates.csv ranks first",
@@ -117,7 +117,7 @@
       "id": "minimum-score-abstention",
       "problem": "Nearest-neighbor search always returns the closest chunks even when the corpus does not contain an answer.",
       "capability": "retrieval_threshold",
-      "implementation_status": "pending",
+      "implementation_status": "available",
       "required_document_groups": ["policies", "procedures", "reference", "noise"],
       "query": "Does Northstar provide dental insurance?",
       "control": {
@@ -125,7 +125,7 @@
         "failure_signal": "The interface presents unrelated passages as though they answer the question"
       },
       "treatment": {
-        "configuration": "Calibrate a minimum relevance threshold on labelled answerable and unanswerable questions, then abstain when no result passes it"
+        "configuration": "Apply the locally calibrated 0.15 minimum reranker score and abstain when no result passes it"
       },
       "success_criteria": [
         "The system states that the available documents do not contain an answer",
