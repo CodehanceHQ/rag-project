@@ -216,7 +216,7 @@ To browse it, connect [MongoDB Compass](https://www.mongodb.com/products/tools/c
 mongodb://rag:rag-local-password@localhost:27018/?authSource=admin&directConnection=true
 ```
 
-To empty the database and start again, run `make reset`. It deletes every document, chunk, vector and original file, asks before doing so, and leaves the API running.
+To wipe the database and start again, run `make clear`. It drops the database, with every document, chunk, vector, original file and search index, then rebuilds the empty search indexes so the API keeps working. It asks before doing so.
 
 Delete single documents through the UI, not directly in the database, so the file, its chunks and its record are removed together. `docker compose down -v` deletes all stored data.
 

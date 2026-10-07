@@ -1,4 +1,4 @@
-.PHONY: setup check start reset db-up db-down api web
+.PHONY: setup check start clear db-up db-down api web
 
 # Any Python 3.10 or newer. Override with: make setup PYTHON=/path/to/python
 PYTHON ?= python3
@@ -28,9 +28,10 @@ check:
 start:
 	@bash scripts/start.sh
 
-# Deletes every stored document, chunk, vector and file. Asks first; YES=1 skips the question.
-reset: db-up
-	@.venv/bin/python scripts/reset.py
+# Wipes the database: all data and the search indexes, which are then rebuilt
+# empty. Asks first; YES=1 skips the question.
+clear: db-up
+	@.venv/bin/python scripts/clear.py
 
 db-up:
 	$(COMPOSE) up -d $(WAIT) mongodb
