@@ -216,7 +216,9 @@ To browse it, connect [MongoDB Compass](https://www.mongodb.com/products/tools/c
 mongodb://rag:rag-local-password@localhost:27018/?authSource=admin&directConnection=true
 ```
 
-Delete documents through the UI, not directly in the database, so the file, its chunks and its record are removed together. `docker compose down -v` deletes all stored data.
+To empty the database and start again, run `make reset`. It deletes every document, chunk, vector and original file, asks before doing so, and leaves the API running.
+
+Delete single documents through the UI, not directly in the database, so the file, its chunks and its record are removed together. `docker compose down -v` deletes all stored data.
 
 ## Troubleshooting
 
