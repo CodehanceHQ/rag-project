@@ -1,0 +1,68 @@
+{
+  "system": "path-a",
+  "judge": "google/gemini-2.5-flash",
+  "rows": [
+    {
+      "id": "sh-01",
+      "shape": "single_hop",
+      "run": 1,
+      "passed": true,
+      "checks": [
+        {
+          "name": "states_expected",
+          "passed": true,
+          "detail": "found ['180 degC']"
+        },
+        {
+          "name": "avoids_known_wrong",
+          "passed": true,
+          "detail": "none of the known wrong answers"
+        },
+        {
+          "name": "claims_supported",
+          "passed": true,
+          "detail": "all 1 named claims appear in cited passages"
+        }
+      ],
+      "judge": null,
+      "answer": "The maximum operating temperature of the BV-12 valve assembly is 180 degC [1]."
+    },
+    {
+      "id": "mh-01",
+      "shape": "multi_hop",
+      "run": 1,
+      "passed": false,
+      "checks": [
+        {
+          "name": "states_expected",
+          "passed": false,
+          "detail": "none of ['Beta Valve Co.']"
+        },
+        {
+          "name": "avoids_known_wrong",
+          "passed": false,
+          "detail": "stated ['Alpha Dichtungen GmbH']"
+        },
+        {
+          "name": "claims_supported",
+          "passed": false,
+          "detail": "unsupported in cited passages: ['recall']"
+        },
+        {
+          "name": "covers_expected (judge)",
+          "passed": false,
+          "detail": "The candidate did not identify Beta Valve Co. as the supplier."
+        }
+      ],
+      "judge": {
+        "covered": false,
+        "missing": [
+          "Beta Valve Co."
+        ],
+        "why": "The candidate did not identify Beta Valve Co. as the supplier.",
+        "judge": "google/gemini-2.5-flash"
+      },
+      "answer": "The supplier Alpha Dichtungen GmbH, which supplies the Bamberg plant, is also one of the approved sources for the seal and valve categories in the Bamberg region [1]. \n\nHowever, the passages do not specify which part failed in the recall or the supplier of that part. Therefore, it cannot be determined from the provided information if Alpha Dichtungen GmbH is the supplier of the part that failed in the recall.\n\nThus, the passages do not contain the answer to which supplier of the part that failed in the recall also supplies the Bamberg plant."
+    }
+  ]
+}

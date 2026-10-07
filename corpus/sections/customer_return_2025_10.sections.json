@@ -1,0 +1,20 @@
+{
+  "file": "customer_return_2025_10.pdf",
+  "doc_id": "CR-RET-2025-233",
+  "date": "2025-10",
+  "pages_total": 2,
+  "sections": [
+    {
+      "section": "1. Return details",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Analysis",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    }
+  ]
+}

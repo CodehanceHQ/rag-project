@@ -1,0 +1,56 @@
+{
+  "system": "path-a",
+  "judge": null,
+  "rows": [
+    {
+      "id": "sh-01",
+      "shape": "single_hop",
+      "run": 1,
+      "passed": true,
+      "checks": [
+        {
+          "name": "states_expected",
+          "passed": null,
+          "detail": "none of []"
+        },
+        {
+          "name": "avoids_known_wrong",
+          "passed": null,
+          "detail": "none of the known wrong answers"
+        },
+        {
+          "name": "claims_supported",
+          "passed": true,
+          "detail": "all 1 named claims appear in cited passages"
+        }
+      ],
+      "judge": null,
+      "answer": "The maximum operating temperature of the BV-12 valve assembly is 180 degC [1]."
+    },
+    {
+      "id": "mh-01",
+      "shape": "multi_hop",
+      "run": 1,
+      "passed": false,
+      "checks": [
+        {
+          "name": "states_expected",
+          "passed": false,
+          "detail": "none of ['Beta Valve Co.', 'beta']"
+        },
+        {
+          "name": "avoids_known_wrong",
+          "passed": false,
+          "detail": "stated ['Alpha Dichtungen GmbH', 'alpha']"
+        },
+        {
+          "name": "claims_supported",
+          "passed": false,
+          "detail": "unsupported in cited passages: ['recall']"
+        }
+      ],
+      "judge": null,
+      "answer": "The supplier Alpha Dichtungen GmbH, which supplies the Bamberg plant, is also one of the approved sources for the seal and valve categories in the Bamberg region [1]. \n\nHowever, the passages do not specify which part failed in the recall or the supplier of that part. Therefore, based on the provided information, the only supplier known to supply the Bamberg plant is Alpha Dichtungen GmbH [1][2]."
+    }
+  ]
+}

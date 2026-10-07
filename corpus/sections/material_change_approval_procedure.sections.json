@@ -1,0 +1,32 @@
+{
+  "file": "material_change_approval_procedure.pdf",
+  "doc_id": "QMS-PR-014",
+  "date": "2024-06",
+  "pages_total": 4,
+  "sections": [
+    {
+      "section": "1. Purpose",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Change classes",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    },
+    {
+      "section": "3. Authority levels",
+      "page_start": 3,
+      "page_end": 3,
+      "pages": "3"
+    },
+    {
+      "section": "4. Records",
+      "page_start": 4,
+      "page_end": 4,
+      "pages": "4"
+    }
+  ]
+}

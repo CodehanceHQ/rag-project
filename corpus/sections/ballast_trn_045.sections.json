@@ -1,0 +1,26 @@
+{
+  "file": "ballast_trn_045.pdf",
+  "doc_id": "TRN-2025-045",
+  "date": "2025-06",
+  "pages_total": 38,
+  "sections": [
+    {
+      "section": "1. Competences",
+      "page_start": 1,
+      "page_end": 12,
+      "pages": "1-12"
+    },
+    {
+      "section": "2. Attendance",
+      "page_start": 13,
+      "page_end": 26,
+      "pages": "13-26"
+    },
+    {
+      "section": "3. Renewals due",
+      "page_start": 27,
+      "page_end": 38,
+      "pages": "27-38"
+    }
+  ]
+}

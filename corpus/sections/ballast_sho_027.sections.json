@@ -1,0 +1,26 @@
+{
+  "file": "ballast_sho_027.pdf",
+  "doc_id": "SHO-2025-027",
+  "date": "2025-04",
+  "pages_total": 29,
+  "sections": [
+    {
+      "section": "1. Shift summary",
+      "page_start": 1,
+      "page_end": 10,
+      "pages": "1-10"
+    },
+    {
+      "section": "2. Carried items",
+      "page_start": 11,
+      "page_end": 20,
+      "pages": "11-20"
+    },
+    {
+      "section": "3. Staffing",
+      "page_start": 21,
+      "page_end": 29,
+      "pages": "21-29"
+    }
+  ]
+}

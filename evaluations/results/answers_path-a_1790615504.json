@@ -1,0 +1,117 @@
+{
+  "system": "path-a",
+  "judge": "google/gemini-2.5-flash",
+  "rows": [
+    {
+      "id": "mh-01",
+      "shape": "multi_hop",
+      "run": 1,
+      "passed": false,
+      "checks": [
+        {
+          "name": "states_expected",
+          "passed": true,
+          "detail": "found ['Beta Valve Co.']"
+        },
+        {
+          "name": "avoids_known_wrong",
+          "passed": false,
+          "detail": "stated ['Alpha Dichtungen GmbH']"
+        },
+        {
+          "name": "claims_supported",
+          "passed": false,
+          "detail": "unsupported in cited passages: ['recall']"
+        },
+        {
+          "name": "covers_expected (judge)",
+          "passed": false,
+          "detail": "The candidate did not identify the correct supplier by name."
+        }
+      ],
+      "judge": {
+        "covered": false,
+        "missing": [
+          "Beta Valve Co."
+        ],
+        "why": "The candidate did not identify the correct supplier by name.",
+        "judge": "google/gemini-2.5-flash"
+      },
+      "answer": "The supplier of the recalled part that also supplies the Bamberg plant is the one with supplier code SUP-0407. This is because Plant X (Bamberg) is approved to receive material from suppliers SUP-0311 and SUP-0407 [4], and the recall relates to a nonconforming delivery received at Plant X (Bamberg) [2]. \n\nHowever, the passages do not explicitly name which company corresponds to SUP-0407. Passage [1] lists suppliers serving the Bamberg region as Alpha Dichtungen GmbH, Beta Valve Co., and Gamma Sealing Systems, but does not link these names to supplier codes.\n\nTherefore, the supplier code SUP-0407 supplies the recalled part and also supplies the Bamberg plant, but the exact company name is not provided in the passages. \n\nReferences: [2][4][1]"
+    },
+    {
+      "id": "mh-01",
+      "shape": "multi_hop",
+      "run": 2,
+      "passed": false,
+      "checks": [
+        {
+          "name": "states_expected",
+          "passed": false,
+          "detail": "none of ['Beta Valve Co.']"
+        },
+        {
+          "name": "avoids_known_wrong",
+          "passed": true,
+          "detail": "none of the known wrong answers"
+        },
+        {
+          "name": "claims_supported",
+          "passed": false,
+          "detail": "unsupported in cited passages: ['recall']"
+        },
+        {
+          "name": "covers_expected (judge)",
+          "passed": false,
+          "detail": "The candidate answer does not identify 'Beta Valve Co.' as the supplier, instead stating that the exact name cannot be determined from the given information."
+        }
+      ],
+      "judge": {
+        "covered": false,
+        "missing": [
+          "Beta Valve Co."
+        ],
+        "why": "The candidate answer does not identify 'Beta Valve Co.' as the supplier, instead stating that the exact name cannot be determined from the given information.",
+        "judge": "google/gemini-2.5-flash"
+      },
+      "answer": "The supplier of the recalled part that also supplies the Bamberg plant is the one with supplier code SUP-0407. This is because Plant X (Bamberg) has approved source codes SUP-0311 and SUP-0407 [4], and the recall relates to a nonconforming delivery received at Plant X (Bamberg) [2]. Since the question asks for the supplier of the recalled part who also supplies Bamberg, the supplier must be one of the approved sources for Bamberg, which are SUP-0311 and SUP-0407.\n\nHowever, the passages do not provide the company names corresponding to these supplier codes, so the exact supplier name cannot be determined from the given information.\n\nTherefore, the supplier of the recalled part also supplying the Bamberg plant is identified by supplier code SUP-0407 or SUP-0311, but the exact name is not stated in the passages [2][4]."
+    },
+    {
+      "id": "mh-01",
+      "shape": "multi_hop",
+      "run": 3,
+      "passed": false,
+      "checks": [
+        {
+          "name": "states_expected",
+          "passed": false,
+          "detail": "none of ['Beta Valve Co.']"
+        },
+        {
+          "name": "avoids_known_wrong",
+          "passed": true,
+          "detail": "none of the known wrong answers"
+        },
+        {
+          "name": "claims_supported",
+          "passed": false,
+          "detail": "unsupported in cited passages: ['recall']"
+        },
+        {
+          "name": "covers_expected (judge)",
+          "passed": false,
+          "detail": "The candidate did not provide the name of the supplier, only its code."
+        }
+      ],
+      "judge": {
+        "covered": false,
+        "missing": [
+          "Beta Valve Co."
+        ],
+        "why": "The candidate did not provide the name of the supplier, only its code.",
+        "judge": "google/gemini-2.5-flash"
+      },
+      "answer": "The supplier of the recalled part that also supplies the Bamberg plant is the one with supplier code SUP-0407. This is because Plant X (Bamberg) has approved source codes SUP-0311 and SUP-0407 [4], and the recall relates to a nonconforming delivery received at Plant X (Bamberg) [2]. \n\nThe passage does not explicitly name the supplier corresponding to SUP-0407, but it confirms that this supplier is approved for Bamberg and involved in the recalled delivery. \n\nTherefore, the supplier of the recalled part that also supplies the Bamberg plant is the supplier with code SUP-0407 [2][4]."
+    }
+  ]
+}

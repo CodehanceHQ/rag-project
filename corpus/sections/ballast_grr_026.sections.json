@@ -1,0 +1,26 @@
+{
+  "file": "ballast_grr_026.pdf",
+  "doc_id": "GRR-2025-026",
+  "date": "2025-03",
+  "pages_total": 36,
+  "sections": [
+    {
+      "section": "1. Receipts",
+      "page_start": 1,
+      "page_end": 12,
+      "pages": "1-12"
+    },
+    {
+      "section": "2. Inspection status",
+      "page_start": 13,
+      "page_end": 24,
+      "pages": "13-24"
+    },
+    {
+      "section": "3. Discrepancies",
+      "page_start": 25,
+      "page_end": 36,
+      "pages": "25-36"
+    }
+  ]
+}

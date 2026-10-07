@@ -1,0 +1,20 @@
+{
+  "file": "CR-89_packaging_specification.pdf",
+  "doc_id": "CR-89",
+  "date": "2025-03",
+  "pages_total": 2,
+  "sections": [
+    {
+      "section": "1. Change description",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Procedure reference",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    }
+  ]
+}

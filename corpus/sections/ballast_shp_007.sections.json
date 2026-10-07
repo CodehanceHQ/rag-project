@@ -1,0 +1,26 @@
+{
+  "file": "ballast_shp_007.pdf",
+  "doc_id": "SHP-2025-007",
+  "date": "2025-09",
+  "pages_total": 33,
+  "sections": [
+    {
+      "section": "1. Consignment",
+      "page_start": 1,
+      "page_end": 11,
+      "pages": "1-11"
+    },
+    {
+      "section": "2. Line items",
+      "page_start": 12,
+      "page_end": 22,
+      "pages": "12-22"
+    },
+    {
+      "section": "3. Documentation",
+      "page_start": 23,
+      "page_end": 33,
+      "pages": "23-33"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# Standalone from the sibling `rag` checkout: own compose project name,
+# container name, host port and volumes, so both can run at once.
+name: rag-project
+
+services:
+  mongodb:
+    image: mongodb/mongodb-atlas-local:8.0
+    container_name: rag-project-mongodb
+    environment:
+      MONGODB_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-rag}
+      MONGODB_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-rag-local-password}
+      DO_NOT_TRACK: "1"
+    ports:
+      - "27018:27017"   # host 27018 — 27017 belongs to the sibling checkout
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - mongodb_search:/data/mongot
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$${MONGODB_INITDB_ROOT_USERNAME}\" --password \"$${MONGODB_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+volumes:
+  mongodb_data:
+  mongodb_config:
+  mongodb_search:

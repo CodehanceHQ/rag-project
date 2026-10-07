@@ -1,0 +1,286 @@
+{
+  "corpus": "rag-project (corpus/documents)",
+  "version": 1,
+  "suite": "baseline-shapes",
+  "required_document_groups": [
+    "corpus/documents"
+  ],
+  "excluded_document_groups": [],
+  "instructions": "Path A over the 25-question benchmark. single_hop rows must PASS (test_baseline_succeeds); multi_hop and long_distance rows are expected to FAIL (test_baseline_fails). A passing multi_hop row means the corpus is not hard enough \u2014 see corpus/manifest.yaml negatives.",
+  "cases": [
+    {
+      "id": "sh-01",
+      "category": "single_hop",
+      "question": "What is the maximum operating temperature of the BV-12 valve assembly?",
+      "expected_behavior": "retrieve_answer",
+      "expected_sources": [
+        "BOM_BV_series_2025.pdf"
+      ],
+      "expected_fact": "180 degC",
+      "competing_answer": "150 degC \u2014 BV-13's value, the near-identical vector"
+    },
+    {
+      "id": "sh-02",
+      "category": "single_hop",
+      "question": "Which part was recalled under R-2025-014?",
+      "expected_behavior": "retrieve_answer",
+      "expected_sources": [
+        "recall_R-2025-014.pdf"
+      ],
+      "expected_fact": "BV-12"
+    },
+    {
+      "id": "sh-03",
+      "category": "single_hop",
+      "question": "What function does the Kassel plant perform?",
+      "expected_behavior": "retrieve_answer",
+      "expected_sources": [
+        "plant_register.pdf"
+      ],
+      "expected_fact": "Machining and sub-assembly. It does not carry out final assembly."
+    },
+    {
+      "id": "sh-04",
+      "category": "single_hop",
+      "question": "What was found wrong with batch 4471?",
+      "expected_behavior": "retrieve_answer",
+      "expected_sources": [
+        "quality_batch_4471.pdf"
+      ],
+      "expected_fact": "seal hardness out of tolerance"
+    },
+    {
+      "id": "sh-05",
+      "category": "single_hop",
+      "question": "Where is Alpha Dichtungen GmbH based?",
+      "expected_behavior": "retrieve_answer",
+      "expected_sources": [
+        "supplier_register.pdf"
+      ],
+      "expected_fact": "ASSIGN_AT_GENERATION"
+    },
+    {
+      "id": "mh-01",
+      "category": "multi_hop",
+      "question": "Which supplier of the recalled part also supplies the Bamberg plant?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "BOM_BV_series_2025.pdf",
+        "plant_register.pdf",
+        "recall_R-2025-014.pdf"
+      ],
+      "expected_fact": "Beta Valve Co.",
+      "competing_answer": "Alpha Dichtungen GmbH"
+    },
+    {
+      "id": "mh-02",
+      "category": "multi_hop",
+      "question": "Who was authorised to approve the FKM-70 material change at the time it was made?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "CR-88_seal_material.pdf",
+        "doa_matrix_2024_01.pdf",
+        "material_change_approval_procedure.pdf",
+        "role_appointments.pdf"
+      ],
+      "expected_fact": "PERSON_A (holder under doa-2024-01)"
+    },
+    {
+      "id": "mh-03",
+      "category": "multi_hop",
+      "question": "Which valve assembly did change request CR-88 apply to, and what is that assembly's maximum operating temperature?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "BOM_BV_series_2025.pdf",
+        "CR-88_seal_material.pdf"
+      ],
+      "expected_fact": "BV-12; temperature ASSIGN_AT_GENERATION",
+      "competing_answer": "BV-13's maximum operating temperature"
+    },
+    {
+      "id": "mh-04",
+      "category": "multi_hop",
+      "question": "Give me the full picture on the part recalled in R-2025-014 \u2014 who supplies it, which of those suppliers serve the Bamberg plant, and who held the authority to approve its seal material change at the time that change was made.",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "BOM_BV_series_2025.pdf",
+        "CR-88_seal_material.pdf",
+        "doa_matrix_2024_01.pdf",
+        "material_change_approval_procedure.pdf",
+        "plant_register.pdf",
+        "recall_R-2025-014.pdf",
+        "role_appointments.pdf"
+      ],
+      "expected_fact": "BV-12. Suppliers: Alpha Dichtungen GmbH and Beta Valve Co. Of those, Beta Valve Co. serves Bamberg. The material change (CR-88) required Level 3; the holder under doa-2024-01, in force on that date, was PERSON_A."
+    },
+    {
+      "id": "mh-05",
+      "category": "multi_hop",
+      "question": "What seal material did the BV-12 use before the current one, and when did it change?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "BOM_BV_series_2024.pdf",
+        "CR-88_seal_material.pdf"
+      ],
+      "expected_fact": "NBR-70; changed at CR-88, date ASSIGN_AT_GENERATION"
+    },
+    {
+      "id": "ld-01",
+      "category": "long_distance",
+      "question": "Why did the BV-12 programme slip?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "CR-88_seal_material.pdf",
+        "cert_fkm70_revalidation.pdf",
+        "quality_batch_4471.pdf",
+        "testlab_minutes_q1_2025.pdf"
+      ],
+      "expected_fact": "batch rejection, rig reallocation, seal material change to FKM-70, and the revalidation it forced"
+    },
+    {
+      "id": "ld-02",
+      "category": "long_distance",
+      "question": "Is there a recurring quality problem at the Bamberg plant?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "customer_return_2025_10.pdf",
+        "line_stoppage_bamberg_2025_08.pdf",
+        "ncr_bamberg_2025_02.pdf",
+        "supplier_car_2025_05.pdf"
+      ],
+      "expected_fact": "Yes \u2014 four separate seal-hardness nonconformities at Bamberg across 2025, raised by four different functions, none referencing any of the others. Count and dates ASSIGN_AT_GENERATION.",
+      "competing_answer": "the \"Bamberg site quality overview\" section of facilities_site_services.pdf \u2014 a near-perfect lexical match that reports no incidents"
+    },
+    {
+      "id": "ld-03",
+      "category": "long_distance",
+      "question": "Why was the housing bolt torque changed?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "CR-91_torque_update.pdf",
+        "field_returns_2024_h2.pdf",
+        "testlab_vibration_M8.pdf",
+        "tolerance_tables.pdf"
+      ],
+      "expected_fact": "Field returns showed fasteners backing off in service; lab vibration testing reproduced it; the tolerance band was found too wide; CR-91 added a diagonal sequence and a 30-minute recheck. The VALUE did not change. Specifics ASSIGN_AT_GENERATION.",
+      "competing_answer": "CR-91_torque_update.pdf \u2014 top hit, states what changed, explains nothing"
+    },
+    {
+      "id": "ld-04",
+      "category": "long_distance",
+      "question": "What do we still owe the regulator on recall R-2025-014?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "capa_commitment_2025_04.pdf",
+        "cert_fkm70_revalidation.pdf",
+        "field_stock_return_log.pdf",
+        "regulator_notification_R-2025-014.pdf"
+      ],
+      "expected_fact": "Four open obligations \u2014 the 90-day follow-up report, the in-progress corrective action, the residual field stock not yet returned, and the scheduled FKM-70 revalidation. Details ASSIGN_AT_GENERATION."
+    },
+    {
+      "id": "cl-01",
+      "category": "context_loss",
+      "question": "What torque applies to the BV-12 housing bolts?",
+      "expected_behavior": "retrieve_answer",
+      "expected_sources": [
+        "work_instruction_rev_D.pdf"
+      ],
+      "expected_fact": "40 Nm, diagonal sequence, recheck after 30 minutes"
+    },
+    {
+      "id": "cl-02",
+      "category": "context_loss",
+      "question": "What is the flatness tolerance for the BV-12 housing face?",
+      "expected_behavior": "retrieve_answer",
+      "expected_sources": [
+        "tolerance_tables.pdf"
+      ],
+      "expected_fact": "ASSIGN_AT_GENERATION \u2014 meaningful only together with its tolerance class"
+    },
+    {
+      "id": "cl-03",
+      "category": "context_loss",
+      "question": "What seal material is currently specified for the BV-12?",
+      "expected_behavior": "retrieve_answer",
+      "expected_sources": [
+        "BOM_BV_series_2025.pdf",
+        "CR-88_seal_material.pdf"
+      ],
+      "expected_fact": "FKM-70",
+      "competing_answer": "NBR-70 \u2014 from a BOM_BV_series_2024.pdf chunk that never says it is the 2024 edition"
+    },
+    {
+      "id": "cl-04",
+      "category": "context_loss",
+      "question": "What approval level is required for a documentation-only change?",
+      "expected_behavior": "retrieve_answer",
+      "expected_sources": [
+        "material_change_approval_procedure.pdf"
+      ],
+      "expected_fact": "Level 1 (ASSIGN_AT_GENERATION)",
+      "competing_answer": "Level 3 \u2014 a true sentence retrieved without the clause that scopes it to safety-critical interfaces. Correct, cited, and about a different class of change."
+    },
+    {
+      "id": "ag-01",
+      "category": "aggregation",
+      "question": "Which plant had the most rework in 2025, and was the trend improving?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "rework_2025_01.pdf",
+        "rework_2025_02.pdf",
+        "rework_2025_03.pdf",
+        "rework_2025_04.pdf",
+        "rework_2025_05.pdf",
+        "rework_2025_06.pdf",
+        "rework_2025_07.pdf",
+        "rework_2025_08.pdf",
+        "rework_2025_09.pdf",
+        "rework_2025_10.pdf",
+        "rework_2025_11.pdf",
+        "rework_2025_12.pdf"
+      ],
+      "expected_fact": "Plant Z (Ingolstadt), and yes \u2014 the trend improved across the year. Monthly counts ASSIGN_AT_GENERATION from the seeded generator; the winner and the direction are designed, then asserted in code."
+    },
+    {
+      "id": "ag-02",
+      "category": "aggregation",
+      "question": "How many change requests were raised against the BV series, and how many of them required Level 3 approval?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "CR-84_fastener_finish.pdf",
+        "CR-86_label_revision.pdf",
+        "CR-88_seal_material.pdf",
+        "CR-89_packaging_specification.pdf",
+        "CR-91_torque_update.pdf",
+        "CR-93_drawing_note_correction.pdf",
+        "CR-95_bush_material.pdf",
+        "CR-97_document_reference_correction.pdf",
+        "material_change_approval_procedure.pdf"
+      ],
+      "expected_fact": "ASSIGN_AT_GENERATION \u2014 a count of CRs, and a subset count"
+    },
+    {
+      "id": "ag-03",
+      "category": "aggregation",
+      "question": "Did rework at the Bamberg plant fall after the housing bolt procedure was revised?",
+      "expected_behavior": "retrieve_multiple_sources",
+      "expected_sources": [
+        "CR-91_torque_update.pdf",
+        "rework_2025_01.pdf",
+        "rework_2025_02.pdf",
+        "rework_2025_03.pdf",
+        "rework_2025_04.pdf",
+        "rework_2025_05.pdf",
+        "rework_2025_06.pdf",
+        "rework_2025_07.pdf",
+        "rework_2025_08.pdf",
+        "rework_2025_09.pdf",
+        "rework_2025_10.pdf",
+        "rework_2025_11.pdf",
+        "rework_2025_12.pdf"
+      ],
+      "expected_fact": "ASSIGN_AT_GENERATION \u2014 a before/after comparison across the CR-91 date"
+    }
+  ]
+}

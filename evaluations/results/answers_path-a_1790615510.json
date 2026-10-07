@@ -1,0 +1,80 @@
+{
+  "system": "path-a",
+  "judge": "google/gemini-2.5-flash",
+  "rows": [
+    {
+      "id": "mh-02",
+      "shape": "multi_hop",
+      "run": 1,
+      "passed": false,
+      "checks": [
+        {
+          "name": "states_expected",
+          "passed": null,
+          "detail": "none of []"
+        },
+        {
+          "name": "avoids_known_wrong",
+          "passed": null,
+          "detail": "none of the known wrong answers"
+        },
+        {
+          "name": "claims_supported",
+          "passed": false,
+          "detail": "unsupported in cited passages: ['FKM-70']"
+        },
+        {
+          "name": "covers_expected (judge)",
+          "passed": false,
+          "detail": "The candidate explicitly states that the passages do not specify who was authorized, which contradicts the expected answer."
+        }
+      ],
+      "judge": {
+        "covered": false,
+        "missing": [
+          "PERSON_A (holder under doa-2024-01)"
+        ],
+        "why": "The candidate explicitly states that the passages do not specify who was authorized, which contradicts the expected answer.",
+        "judge": "google/gemini-2.5-flash"
+      },
+      "answer": "The passages do not specify who was authorised to approve the FKM-70 material change at the time it was made. \n\nPassage [4] states that authority to approve a change is conferred by the delegation of authority in force on the date the change is raised, but it does not name the role holders or individuals. Passage [5] explains that authority levels are held by role and set out in the delegation of authority, but again does not name who held the authority at the relevant date.\n\nTherefore, the specific person or role authorised to approve the FKM-70 material change is not provided in the given passages."
+    },
+    {
+      "id": "mh-02",
+      "shape": "multi_hop",
+      "run": 2,
+      "passed": false,
+      "checks": [
+        {
+          "name": "states_expected",
+          "passed": null,
+          "detail": "none of []"
+        },
+        {
+          "name": "avoids_known_wrong",
+          "passed": null,
+          "detail": "none of the known wrong answers"
+        },
+        {
+          "name": "claims_supported",
+          "passed": false,
+          "detail": "unsupported in cited passages: ['FKM-70']"
+        },
+        {
+          "name": "covers_expected (judge)",
+          "passed": false,
+          "detail": "The candidate explicitly states that the passages do not specify who was authorized, which contradicts the expected answer."
+        }
+      ],
+      "judge": {
+        "covered": false,
+        "missing": [
+          "PERSON_A (holder under doa-2024-01)"
+        ],
+        "why": "The candidate explicitly states that the passages do not specify who was authorized, which contradicts the expected answer.",
+        "judge": "google/gemini-2.5-flash"
+      },
+      "answer": "The passages do not specify who was authorised to approve the FKM-70 material change at the time it was made. Passage [4] states that authority to approve a change is conferred by the delegation of authority in force on the date the change is raised, but it does not name the role holders. Passage [5] explains that authority levels are held by role and set out in the delegation of authority, but again does not name specific individuals or roles. Therefore, the exact authorised approver is not provided in the passages."
+    }
+  ]
+}

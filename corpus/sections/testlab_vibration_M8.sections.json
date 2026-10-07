@@ -1,0 +1,26 @@
+{
+  "file": "testlab_vibration_M8.pdf",
+  "doc_id": "TL-RPT-2025-044",
+  "date": "2025-03",
+  "pages_total": 3,
+  "sections": [
+    {
+      "section": "1. Test setup",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Results",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    },
+    {
+      "section": "3. Observations",
+      "page_start": 3,
+      "page_end": 3,
+      "pages": "3"
+    }
+  ]
+}

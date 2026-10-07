@@ -1,0 +1,1147 @@
+# Corpus manifest — the fact table the corpus is built from.
+#
+# This file is the source of truth: the entities, the documents that hold
+# them, the negative constraints that keep the hard questions hard, and the
+# 25 benchmark questions. Never adjust the corpus to protect a number that was
+# guessed before measuring. Measure, then record what was measured.
+
+meta:
+  scale:
+    documents: 100
+    pages_total: ~2000          # 4 to ~60 pages each
+  domain: fictional industrial manufacturer — valves and seals
+
+  # DECIDED: the corpus has a declared NOW, and every date is assigned relative
+  # to it rather than to the real calendar. Four questions depend on one
+  # (mh-02, mh-05, ag-03, ld-04) and until now there wasn't one.
+  #
+  # This also resolves a contradiction. The FKM-70 change was made "eighteen
+  # months ago" and entities.authority requires CR-88 to fall under
+  # doa-2024-01, which doa-2025-03 supersedes in 2025-03. Eighteen months
+  # before the real date (2026-09) is 2025-03 — the month the CURRENT matrix
+  # took effect. CR-88 would fall under the new matrix, PERSON_B would be the
+  # right answer, and mh-02 would lose its date dependency.
+  corpus_now: "2026-03"
+  dating_rules: |
+    Every date in the corpus is assigned relative to corpus_now, never to the
+    real calendar, so the corpus does not rot as time passes.
+      CR-88          ~2024-09  — eighteen months before corpus_now, and
+                                 comfortably inside doa-2024-01's window
+      doa-2024-01    2024-01   — in force when CR-88 was raised
+      doa-2025-03    2025-03   — current as at corpus_now
+      CR-91          mid-2025  — inside the 2025 rework series, four months
+                                 clear of either end (see ag-03)
+      rework series  2025-01 .. 2025-12
+      R-2025-014     2025      — after CR-88, so the recall postdates the
+                                 material change
+    If corpus_now moves, every one of these moves with it.
+
+  # DECIDED: 100 documents.
+
+  # DECIDED: split the corpus by how much it matters.
+  # SUPERSEDED by corpus/document-spec.yaml, which found that the finished
+  # 25-question set implies 51 named files, 31 of them test-covered. The split
+  # is now four tiers, not two. Total is still 100.
+  #   authored 31 · special 2 · constrained 18 · ballast 49
+  authored: 31        # carry the chains; must satisfy this manifest exactly
+  constrained: 18     # 12 rework monthlies + 6 change requests. Cheap model,
+                      # rigid template, SEEDED data — the aggregation answers
+                      # are known before generation, not discovered after.
+  special: 2          # exist to defeat text extraction. See the spec.
+  ballast: 49         # filler. Templated, repetitive, cheap model. Real corpora
+                      # ARE repetitive — ballast makes Path A's failure more
+                      # convincing. Do not spend a frontier model on it.
+                      # BUT see negatives.ballast_vocabulary — cheap does not
+                      # mean unconstrained. Ballast can break any negative in
+                      # this file, and it is the part nobody audits.
+
+# ---------------------------------------------------------------------------
+# ENTITIES — every named thing in the corpus. Values are binding.
+# ---------------------------------------------------------------------------
+entities:
+  parts:
+    - id: BV-12
+      name: valve assembly BV-12
+      note: the recalled part — R-2025-014 names it as the product affected
+    - id: BV-13
+      name: valve assembly BV-13
+      note: |
+        Makes the embedding-vs-identity argument ("near-identical
+        vectors, different parts"). Must be a genuinely different part with at
+        least one materially different spec value — specifically the maximum
+        operating temperature, which is what mh-03 turns on. BV-13's value is
+        the plausible wrong answer there, which is what converts that claim
+        from an assertion into a measurement.
+
+        BV-13 also has its own housing bolts — a different fastener size at a
+        different torque, in its own work instruction. That is what makes am-02
+        genuinely ambiguous, and it gives the near-identical-vectors argument
+        two independent demonstrations rather than one.
+    - id: NBR-70
+      name: NBR-70 seal material
+      note: |
+        The OUTGOING seal material, superseded by FKM-70 at CR-88. Exists to
+        give mh-05 an edition-selection hop: it appears in the 2024 bill of
+        materials and nowhere later. See negatives.mh05_material_supersession.
+
+    - id: FKM-70
+      name: FKM-70 seal material
+      note: |
+        The discovered-vocabulary term: FKM-70 CANNOT be guessed from the
+        question. See negatives.
+
+  suppliers:
+    - id: alpha
+      name: Alpha Dichtungen GmbH
+      supplies_parts: [BV-12]
+      supplies_plants: [kassel, ingolstadt]   # real plants — deliberately NOT Bamberg
+      note: |
+        The plausible wrong answer to mh-01. Alpha supplies plants, just not
+        that one — which is a far better trap than "Alpha supplies nothing
+        anywhere", and it is what lets supplier_register's decoy passage read
+        naturally instead of contrived.
+    - id: beta
+      name: Beta Valve Co.
+      supplies_parts: [BV-12]
+      supplies_plants: [bamberg]
+      note: the correct answer to mh-01
+    - id: gamma
+      name: Gamma Sealing Systems
+      supplies_parts: [BV-13]                 # never BV-12, never a common component
+      supplies_plants: [bamberg, kassel]
+      note: |
+        Filler, so Bamberg's supplier list is not a two-item giveaway. Gamma is
+        approved at Bamberg but sources NO BV-12 line item, so it must not be
+        an answer to mh-01. See negatives.gamma_not_bv12.
+
+  plants:
+    - id: bamberg
+      name: Plant X (Bamberg)
+      suppliers: [beta, gamma]
+      note: mh-01's third hop. Carries ld-02's four seal nonconformities.
+    - id: kassel
+      name: Plant Y (Kassel)
+      suppliers: [alpha, gamma]
+    - id: ingolstadt
+      name: Plant Z (Ingolstadt)
+      suppliers: [alpha, beta]
+      note: |
+        ADDED: ag-01 asks which plant had the most rework and the manifest
+        defined exactly one plant, which made it unanswerable — and
+        ballast_vocabulary forbids any plant not listed here, so the rework
+        generator had nothing to compare. Ingolstadt is the ag-01 winner, NOT
+        Bamberg: Bamberg already carries ld-02's story, and if it won here too
+        a reader could infer the answer from the narrative instead of
+        aggregating, which is the one thing ag-01 exists to test.
+
+  records:
+    - id: R-2025-014
+      kind: recall
+      subject: BV-12
+    - id: CR-88
+      kind: change_request
+      subject: BV-12 seal material revised to FKM-70
+      date: |
+        ~2024-09 — eighteen months before meta.corpus_now, inside
+        doa-2024-01's window. RESOLVED: this was previously "assign during
+        generation", which was unsafe — see meta.dating_rules for the
+        contradiction that produced.
+    - id: CR-91
+      kind: change_request
+      subject: torque specification update — adds diagonal sequence and 30-minute recheck
+      date: |
+        mid-2025 — must fall inside the 2025 rework series with at least four
+        months either side, or ag-03's before/after comparison is not
+        computable. See negatives.ag03_pivot_discovered.
+      note: |
+        DECIDED: CR-91 changes the PROCEDURE, not the value. Both rev C and
+        rev D state 40 Nm; rev C states no sequence and no recheck. This keeps
+        cl-01 safe — a superseded revision can only give an INCOMPLETE answer,
+        never a contradictory one, so the context-loss example (cl-01) keeps
+        exactly one failure mode. ld-03 asks why the procedure changed.
+    - id: batch-4471
+      kind: quality_rejection
+      subject: seal hardness out of tolerance
+
+  authority:
+    level_required_for_material_change: Level 3
+    matrices:
+      - id: doa-2024-01
+        effective: 2024-01
+        status: superseded
+        level_3_role: Director of Engineering Quality
+        level_3_holder: Dr. Helga Brandt      # was PERSON_A — resolved via role_appointments
+      - id: doa-2025-03
+        effective: 2025-03
+        status: current
+        level_3_role: Head of Product Integrity
+        level_3_holder: Martin Ostermann      # was PERSON_B — resolved via role_appointments
+    note: |
+      mh-02 depends entirely on there being TWO matrices and on
+      CR-88 falling under the older one. If both matrices name the same
+      person, the example dies.
+
+      REFINED at generation: the matrices assign Level 3 to a ROLE, not to a
+      named person, and role_appointments.pdf resolves role -> person -> dates.
+      The reorganisation moved the authority to a
+      different role entirely (Director of Engineering Quality became Head of
+      Product Integrity), so two different people fall out naturally rather
+      than by assertion. This is what makes mh-02 genuinely four hops: without
+      it, reading the matrix hands you a name and the chain is three.
+
+  torque:
+    fastener: M8 housing bolts
+    value: 40 Nm
+    sequence: diagonal
+    recheck: 30 minutes
+    introduced_by: |
+      CR-91 added the diagonal sequence and the 30-minute recheck. The VALUE
+      was never changed — work_instruction_rev_C.pdf and _rev_D.pdf both say
+      40 Nm. See entities.records.CR-91 for why.
+    note: |
+      cl-01 requires the chunk containing "Set it to 40 Nm" to NOT name
+      the fastener. See negatives.torque_referent.
+
+# ---------------------------------------------------------------------------
+# DOCUMENTS — which document holds which fact. Names become expected_sources.
+# ---------------------------------------------------------------------------
+documents:
+  - file: recall_R-2025-014.pdf
+    holds: [BV-12 is the failed part, recall date, affected batches]
+    must_not_hold: [supplier names, Bamberg, any plant name]
+
+  - file: recall_register_2023_2025.pdf
+    holds: [list of recalls incl. R-2025-014]
+
+  - file: BOM_BV_series_2025.pdf
+    pages: ~60
+    holds: [BV-12 suppliers = Alpha + Beta, BV-13 entry, part specs]
+    must_not_hold: [Bamberg, recall references, "NBR-70", any formerly/previously annotation]
+
+  - file: BOM_BV_series_2024.pdf
+    pages: ~55
+    holds: ["BV-12 seal material = NBR-70", 2024 supplier set]
+    must_not_hold: ["FKM-70", "CR-88", any reference to a later revision]
+    note: |
+      mh-05's second hop. The edition in force before CR-88 — which is why the
+      change date has to be learned first. Without this the 2024 BOM is page
+      count and nothing else.
+
+  - file: plant_register.pdf
+    holds: [Bamberg suppliers = Beta + Gamma]
+    must_not_hold: [recall references, BV-12 part numbers]
+
+  - file: supplier_register.pdf
+    holds: [Alpha, Beta, Gamma company records, Alpha Dichtungen's registered location]
+    note: |
+      Must contain a passage about Bamberg's suppliers generally that mentions
+      Alpha — this is the plausible wrong chunk retrieved for mh-01.
+
+  - file: quality_batch_4471.pdf
+    holds: ["batch 4471 rejected, seal hardness out of tolerance"]
+    fragment_of: programme_slip
+
+  - file: testlab_minutes_q1_2025.pdf
+    holds: ["rig 3 reallocated to the injector programme for six weeks"]
+    fragment_of: programme_slip
+
+  - file: CR-88_seal_material.pdf
+    holds: ["seal material revised to FKM-70", CR-88 date, procedure revision]
+    fragment_of: programme_slip
+
+  - file: cert_fkm70_revalidation.pdf
+    holds: ["revalidation required following the material change"]
+    fragment_of: programme_slip
+
+  - file: programme_schedule_BV.pdf
+    holds: ['"BV-12 programme schedule, phase two" header plus a table of dates']
+    note: |
+      The decoy. ld-01 requires this to be the TOP hit for "why did the
+      BV-12 programme slip?" and to contain no explanation whatsoever.
+
+  - file: work_instruction_rev_D.pdf
+    holds: [M8 housing bolts, diagonal sequence, 40 Nm, 30 min recheck]
+  - file: work_instruction_rev_C.pdf
+    status: superseded
+    holds: [M8 housing bolts, 40 Nm]
+    must_not_hold: [diagonal sequence, recheck, any torque value other than 40 Nm]
+    note: |
+      Same value as rev D, without the sequence or the recheck. That asymmetry
+      is deliberate — see entities.records.CR-91.
+
+  - file: work_instruction_BV13.pdf
+    holds: [BV-13 housing bolt fastener size and torque value]
+    must_not_hold: ["BV-12", 40 Nm, any statement that one assembly is the default]
+    note: |
+      am-02's second horn. Deliberately similar in language to
+      work_instruction_rev_D.pdf — that similarity is the point.
+
+  - file: CR-2xx_series.pdf
+    count: 4-6
+    role: change_request_population
+    holds: [routine BV-series change requests — fastener finish, label revision,
+            packaging spec, documentation corrections]
+    must_not_hold: ["FKM-70", approver names, approval levels]
+    note: |
+      ag-02 needs a non-trivial population to count. Mostly ballast-grade, but
+      they carry one real constraint: the same house style as CR-88 and CR-91 —
+      no person, no level. That is what makes CR-88's missing signature block a
+      convention rather than a contrivance, which mh-02 depends on.
+
+  - file: CR-91_torque_update.pdf
+    holds: [the new sequence and recheck requirement, CR-91 date]
+    role: decoy
+    note: |
+      ld-03's decoy, and structurally the twin of programme_schedule_BV.pdf:
+      the top hit for "why was the housing bolt torque changed", stating
+      exactly what changed and not one word of why.
+
+  # --- ld-02 fragments: four isolated Bamberg quality incidents ---
+  - file: ncr_bamberg_2025_02.pdf
+    fragment_of: bamberg_recurring
+  - file: supplier_car_2025_05.pdf
+    fragment_of: bamberg_recurring
+  - file: line_stoppage_bamberg_2025_08.pdf
+    fragment_of: bamberg_recurring
+  - file: customer_return_2025_10.pdf
+    fragment_of: bamberg_recurring
+
+  # --- ld-03 fragments: why the torque procedure changed ---
+  - file: field_returns_2024_h2.pdf
+    fragment_of: torque_cause
+  - file: testlab_vibration_M8.pdf
+    fragment_of: torque_cause
+
+  # --- ld-04 fragments: one open obligation each, four functions ---
+  - file: regulator_notification_R-2025-014.pdf
+    fragment_of: recall_obligations
+  - file: capa_commitment_2025_04.pdf
+    fragment_of: recall_obligations
+  - file: field_stock_return_log.pdf
+    fragment_of: recall_obligations
+
+  - file: material_change_approval_procedure.pdf
+    holds: [Level 3 required for material change, Level 1 for documentation-only change,
+            scope sentence limiting Level 3 to safety-critical interfaces]
+    must_not_hold: [names of authority holders]
+    note: |
+      cl-04 needs the Level 3 rule to be preceded by a scoping sentence that a
+      fixed-width boundary can strand. The added change classes do not disturb
+      negatives.authority_split — still LEVELS, never PEOPLE.
+
+  - file: doa_matrix_2025_03.pdf
+    holds: [current Level 3 holder]
+  - file: doa_matrix_2024_01.pdf
+    holds: [superseded Level 3 holder]
+    status: superseded
+
+  - file: role_appointments.pdf
+    holds: [who held which role, with dates]
+
+  - file: rework_2025_01.pdf .. rework_2025_12.pdf
+    count: 12
+    holds: [monthly rework counts per plant]
+    note: |
+      The aggregation case (ag-01). One plant must be the answer to "most rework
+      in 2025" and the trend must be answerable only from all twelve in order.
+      No single month may reveal the annual winner.
+
+  - file: facilities_site_services.pdf
+    role: noise
+    note: high lexical overlap with real questions, answers none of them
+
+  - file: obsolete_BV_catalogue_pre2020.pdf
+    role: noise
+    note: plausible and stale — should out-rank the current catalogue sometimes
+
+  - file: tolerance_tables.pdf
+    role: parsing_challenge
+    holds: [BV-12 housing face flatness tolerance, tolerance classes as columns]
+    note: |
+      Multi-column, layout carries meaning — proves pages-as-images. cl-02
+      requires the table to run past 1000 characters before the BV-12 housing
+      face row, so a fixed-width chunk can orphan the row from its headers.
+      Also one of ld-03's fragments.
+
+  - file: inspection_cert_scanned.pdf
+    role: parsing_challenge
+    note: image-only, no text layer
+
+  - file: assembly_exploded_diagram.pdf
+    role: parsing_challenge
+    note: callouts only meaningful visually
+
+# ---------------------------------------------------------------------------
+# NEGATIVE CONSTRAINTS — the tests that keep the failures real.
+# These matter MORE than the positive facts. A corpus that accidentally
+# co-locates two facts silently converts a 3-hop question into a 1-hop one,
+# and the central example stops failing.
+# ---------------------------------------------------------------------------
+negatives:
+  multihop_supplier:
+    assert: |
+      plant_register.pdf records approved sources by CODE only and names no
+      supplier company anywhere. The mapping code -> company exists solely in
+      supplier_register.pdf. Without this the plant register answers mh-01's
+      third hop directly and the chain collapses to one lookup — measured, not
+      hypothetical: see the note on sh-03.
+    assert_no_cooccurrence:
+      - [BV-12, Bamberg]              # in any single document
+      - [recall, Bamberg]
+      - ["R-2025-014", "Alpha Dichtungen"]
+      - ["R-2025-014", "Beta Valve"]
+    reason: mh-01 — three hops must be genuinely three hops
+
+  programme_slip:
+    forbidden_words_in_fragments: [slip, delay, delayed, late, schedule]
+    forbidden_except:
+      testlab_minutes_q1_2025.pdf: |
+        The word "programme" appears ONCE, only as part of "the injector
+        programme" — a DIFFERENT programme. That is deliberate: it is the
+        nearest the corpus comes to the question's vocabulary and it points
+        the wrong way. A blanket ban on "programme" would delete the required
+        verbatim string, so the ban is carved out here rather than in the
+        word list.
+    applies_to:
+      - quality_batch_4471.pdf
+      - testlab_minutes_q1_2025.pdf
+      - CR-88_seal_material.pdf
+      - cert_fkm70_revalidation.pdf
+    reason: |
+      ld-01's mechanism. If a fragment says "this delayed the programme",
+      similarity search finds it and the long-distance example collapses.
+
+  gamma_not_bv12:
+    assert: |
+      In both editions of the bill of materials, Gamma Sealing Systems is a
+      source for BV-13 line items only — no BV-12 line item, no common
+      component — and the approved supplier index says so.
+    reason: |
+      mh-01 must have ONE answer. Bamberg approves Beta and Gamma; as first
+      rendered, the line-item tables drew all three suppliers at random, so
+      Gamma sourced BV-12 items and was a second documented answer (measured
+      2026-09-28).
+
+  cr88_class_recorded:
+    assert: |
+      CR-88_seal_material.pdf records "Classification | Class A", as the
+      generated change requests do. It still names no person and no level.
+    reason: |
+      mh-02's second hop is class -> level. With the class unrecorded the hop
+      could not be made from the corpus at all (measured 2026-09-28). Also
+      what ag-02 counts.
+
+  fkm70_undiscoverable:
+    assert: FKM-70 appears in NO document title, NO section heading, and NOT
+            in the recall report or the programme schedule
+    reason: |
+      ld-01 depends on FKM-70 being unreachable by rephrasing the question. It must only be learnable by reading CR-88.
+
+  torque_referent:
+    assert: |
+      In a 1000-character fixed-width chunking of work_instruction_rev_D.pdf,
+      at least one chunk contains "40 Nm" and does NOT contain "M8".
+    reason: |
+      cl-01's lost-context example. This is a CHUNKING property, not a
+      document property — verify it against the actual chunker.
+
+  aggregation_needs_all:
+    assert: no single rework_2025_*.pdf states the annual total or the winner
+    assert: |
+      No single month's table shows the annual winner as that month's worst
+      plant. The answer must survive only summation.
+    assert: |
+      The ag-01 winner is NOT Bamberg. Bamberg carries ld-02's nonconformities,
+      and a shared winner would let the answer be inferred from narrative
+      rather than computed.
+    reason: ag-01 — no value of k rescues this
+
+  authority_split:
+    assert: |
+      material_change_approval_procedure.pdf names the required LEVEL but no
+      PERSON; the matrices name people but not CR-88; and CR-88_seal_material.pdf
+      itself names NO person and NO authority level — it records the change, its
+      date, the procedure revision and its CLASS, and nothing else.
+    reason: |
+      mh-02 — keeps the chain at four hops. The CR-88 clause is load-bearing
+      and was missing: a change request carrying a signature block, which is the
+      natural thing for a generator to write, collapses mh-02 from four hops to
+      one and the question stops being hard.
+
+  ld02_recurring:
+    forbidden_words_in_fragments: [recurring, repeated, pattern, systemic,
+                                   trend, ongoing, again, chronic, "third time"]
+    applies_to:
+      - ncr_bamberg_2025_02.pdf
+      - supplier_car_2025_05.pdf
+      - line_stoppage_bamberg_2025_08.pdf
+      - customer_return_2025_10.pdf
+    assert: |
+      No document lists more than one of the four nonconformities. No fragment
+      names BV-12 (protects negatives.multihop_supplier) and none names NBR-70
+      (protects negatives.mh05_material_supersession).
+    assert_decoy: |
+      facilities_site_services.pdf carries a "Bamberg site quality overview"
+      section with heavy lexical overlap with the question and no incident
+      detail whatsoever.
+    reason: |
+      ld-02. The answer is a judgement about REPETITION, which no ranked list
+      of five can produce. Each record is a defensible account of one incident.
+
+  ld03_torque_cause:
+    forbidden_words_in_fragments: [why, because, cause, "root cause", reason,
+                                   "led to", "resulted in", prompted, "due to"]
+    applies_to:
+      - field_returns_2024_h2.pdf
+      - testlab_vibration_M8.pdf
+      - tolerance_tables.pdf
+    assert: |
+      CR-91_torque_update.pdf states the new sequence and recheck and the
+      change date, and contains no rationale, no reference to field returns
+      and no reference to test results.
+    reason: |
+      ld-03. Builds a second failure spine independent of the recall — without
+      it every hard question in the benchmark orbits BV-12 and Path A's
+      failures are suspiciously correlated. Also the only question that puts
+      tolerance_tables.pdf (parsing challenge) on the evidence path.
+
+  ld04_obligations_open:
+    forbidden_words_in_fragments: [outstanding, "open item", "still owed",
+                                   overdue, "pending closure", unresolved,
+                                   incomplete, owed, remaining]
+    applies_to:
+      - regulator_notification_R-2025-014.pdf
+      - capa_commitment_2025_04.pdf
+      - field_stock_return_log.pdf
+      - cert_fkm70_revalidation.pdf
+    assert: |
+      Each of the four documents records exactly ONE open obligation, stated
+      POSITIVELY (a due date, an in-progress status, a residual count, a
+      scheduled test) — never inferred from the absence of a closure record.
+    assert: |
+      No document lists the obligations together. No closure, sign-off or
+      recall-completion record exists for R-2025-014. No fragment names
+      Bamberg or any plant (protects negatives.multihop_supplier).
+    reason: |
+      ld-04. Grading stays deterministic because every item is positively
+      recorded; the difficulty is purely that no passage resembles the
+      question. Deliberately arithmetic-free, so ag-01 remains the only
+      question in the set whose answer is a sum.
+
+  ballast_vocabulary:
+    assert: |
+      Ballast varies WORDING, never VOCABULARY. It may not introduce any plant,
+      supplier, part number, material grade, change request id, recall id or
+      person that is not listed in `entities`. Named things come from a closed
+      set.
+    assert: |
+      No ballast document may contain any pair listed in any
+      assert_no_cooccurrence block anywhere in this file.
+    assert: |
+      No ballast document may mention a warranty period, or any plant other
+      than those in entities.plants (protects un-01 and un-02).
+    test: test_negatives_hold, run over ballast as well as authored documents
+    reason: |
+      80 of 100 documents are generated by the cheapest model in the pipeline
+      and the manifest previously placed NO constraint on them. A cheap model
+      told to produce plausible manufacturing documents will invent plants,
+      suppliers and part numbers, because that is what makes output look real.
+      Any one of those inventions can answer an unanswerable question, or put
+      a supplier next to Bamberg and silently convert mh-01 from three hops to
+      one, at the scale where nobody is looking.
+
+  un02_absent_plant:
+    expected_behaviour: decline
+    assert: |
+      The string "Regensburg" appears in NO document — authored or ballast.
+    grading_note: |
+      Two justifications both count as correct, and the second is the
+      stronger — "no results" (weaker) versus "the plant
+      register does not list a Regensburg site" (stronger: it checked the
+      authoritative document rather than concluding from an empty search).
+    reason: |
+      un-02. The only test of refusal AFTER partial success — two hops land
+      and the third has nothing. That is where a system fabricates.
+
+  sh_baseline_must_win:
+    assert: |
+      No single-hop question depends on a parsing-challenge document
+      (tolerance_tables.pdf, inspection_cert_scanned.pdf,
+      assembly_exploded_diagram.pdf).
+    assert: |
+      Every single-hop answer sits in ONE document, in ONE section, with heavy
+      lexical overlap between the question and the passage.
+    test: test_baseline_succeeds
+    reason: |
+      Single-hop is where a single-pass pipeline should be at its best. If
+      Path A loses these rows, the benchmark is measuring something other than
+      question shape. This is the peer of test_baseline_fails.
+
+  am01_undated_authority:
+    expected_behaviour: clarify
+    assert: |
+      Both delegation matrices are retrievable, and neither states that it is
+      the only one. `status: superseded` is a property of the document record
+      in this manifest, not a sentence inside the PDF that resolves an undated
+      question.
+    assert: |
+      No document names both Level 3 holders.
+    reason: |
+      am-01 is mh-02 with the date clause deleted — same four documents, same
+      facts, opposite correct behaviour. The cleanest demonstration available
+      that the difficulty lives in the QUESTION, not the corpus.
+
+  am02_undisambiguated_fastener:
+    expected_behaviour: clarify
+    assert: |
+      BV-12 and BV-13 both have housing bolts, of different sizes and different
+      torque values, in separate work instructions. Neither document says which
+      assembly is the default.
+    assert: |
+      No document contains both torque values.
+    reason: |
+      am-02 turns a known danger into a benchmark item — "somebody
+      asks about a DIFFERENT fastener, this chunk comes back because it is full
+      of torque language, and the model tells them forty newton metres with a
+      citation attached".
+
+  ag02_no_register:
+    assert: |
+      No change-request register, index or log exists anywhere in the corpus.
+      The only way to count change requests is to find all of them.
+    assert: |
+      No CR document states an approval level or names an approver. House style
+      is consistent across every CR, so CR-88's silence is not a special case.
+    assert: |
+      No CR other than CR-88 mentions FKM-70 (protects fkm70_undiscoverable).
+    reason: |
+      ag-02. A register collapses the question to one read and turns the count
+      into a stated fact rather than a result. Also the benchmark item for
+      exact match versus similarity — change requests are found by code,
+      which is exactly what similarity search is worst at.
+
+  ag03_pivot_discovered:
+    assert: |
+      CR-91's date falls inside the 2025 rework series with at least four
+      months either side, so a before/after comparison is computable.
+    assert: |
+      No rework monthly references CR-91, the torque revision, or any procedure
+      change. The monthlies are counts and nothing else.
+    inherits: aggregation_needs_all
+    reason: |
+      ag-03. If a monthly mentions the revision the pivot becomes findable by
+      similarity, and the question collapses into ag-01 with extra steps.
+
+  cl02_table_header:
+    assert: |
+      In a 1000-char / 180-overlap split of tolerance_tables.pdf, at least one
+      chunk contains the BV-12 housing-face row and does NOT contain the
+      table's column header row.
+    assert: |
+      The table carries enough preceding rows that the header row and the
+      target row cannot land in the same 1000-character window.
+    fixed_by: [structural_chunking, parent_document_retrieval]
+    reason: |
+      cl-02. The lost context is SPATIAL rather than grammatical — a column,
+      not a noun. Makes "layout carries meaning" a measurement.
+
+  cl03_edition_orphaned:
+    assert: |
+      In a 1000-char / 180-overlap split of BOM_BV_series_2024.pdf, at least
+      one chunk contains "NBR-70" and does NOT contain "2024" or any other
+      edition identifier — the chunk cannot say which BOM it came from.
+    fixed_by: [title_prefix]
+    reason: |
+      cl-03, and the ONLY test of the title-prefix fix anywhere in this
+      manifest. Nothing else checks it.
+      Mirror of mh-05: same two editions, opposite directions, so a generator
+      that gets the 2024/2025 split wrong fails a test either way it errs.
+
+  cl04_scope_orphaned:
+    assert: |
+      In a 1000-char / 180-overlap split of
+      material_change_approval_procedure.pdf, at least one chunk contains the
+      Level 3 requirement and does NOT contain the sentence scoping it to
+      safety-critical interfaces.
+    fixed_by: [parent_document_retrieval]
+    reason: |
+      cl-04. The only question in the benchmark where the retrieved passage is
+      TRUE and the answer is still wrong — the failure is applicability, not
+      accuracy. "True sentence, wrong bolt, sourced", generalised.
+
+  mh03_identity:
+    assert_no_cooccurrence:
+      - ["CR-88", "maximum operating temperature"]
+    assert: |
+      BV-12 and BV-13 appear in the same BOM table with materially different
+      maximum operating temperature values, and the part number is the only
+      thing distinguishing them — no surrounding prose tells them apart.
+    reason: |
+      mh-03. Also what makes the exact-match-versus-embeddings claim
+      measurable rather than asserted: BV-13's value is the retrievable wrong
+      answer.
+
+  mh04_no_summary:
+    assert_no_cooccurrence:
+      - ["R-2025-014", "doa-2024-01"]
+      - ["R-2025-014", "doa-2025-03"]
+    assert: |
+      No document carries two or more of mh-04's three legs — suppliers, plants
+      served, approval authority — together. No recall-closure report and no
+      audit-summary document exists anywhere in the corpus.
+    reason: |
+      mh-04. A summary document silently converts the fan-out into a single
+      read, which removes the only fan-out question in the set.
+
+  mh05_material_supersession:
+    assert_no_cooccurrence:
+      - ["NBR-70", "FKM-70"]
+    assert: |
+      CR-88 does not name the outgoing material. BOM_BV_series_2025.pdf carries
+      no formerly/previously/superseded annotation against the seal row. NBR-70
+      appears in the 2024 bill of materials and nowhere later.
+    reason: |
+      mh-05. One sentence anywhere reading "changed from NBR-70 to FKM-70"
+      collapses this to a single hop and deletes the edition-selection step,
+      which is the whole point of the question.
+
+# ---------------------------------------------------------------------------
+# QUESTIONS — authored first, corpus generated to serve them.
+# ---------------------------------------------------------------------------
+questions:
+  - id: sh-01
+    shape: single_hop
+    q: What is the maximum operating temperature of the BV-12 valve assembly?
+    answer: 180 degC
+    wrong_answer_path_a: 150 degC — BV-13's value, the near-identical vector
+    expected_sources: [BOM_BV_series_2025.pdf]
+    negatives: [sh_baseline_must_win]
+    role: Path A answers this correctly and quickly
+
+  - id: sh-02
+    shape: single_hop
+    q: Which part was recalled under R-2025-014?
+    answer: BV-12
+    expected_sources: ["recall_R-2025-014.pdf"]
+    negatives: [sh_baseline_must_win]
+    also_a_hop_of: [mh-01, mh-04]
+    role: |
+      Hop 1 of mh-01, asked alone. One lookup with near-total lexical overlap.
+      Inside mh-01 it is the hop that PRODUCES the string BV-12, which is not
+      in the question.
+
+  - id: sh-03
+    shape: single_hop
+    q: What function does the Kassel plant perform?
+    answer: Machining and sub-assembly. It does not carry out final assembly.
+    expected_sources: [plant_register.pdf]
+    negatives: [sh_baseline_must_win]
+    role: |
+      REPLACED. The original sh-03 was "which suppliers serve the Bamberg
+      plant?" — hop 3 of mh-01, asked alone. That pairing read well and was a
+      design error: mh-01 contains it almost verbatim, so the passage
+      answering sh-03 was guaranteed to surface for mh-01 and shortcut the
+      chain. Measured 2026-09-28: Path A answered mh-01 with the correct
+      supplier while fabricating the recall link entirely, because the plant
+      register handed it hop 3 directly.
+
+      Site approvals now live in the plant register as supplier CODES, which
+      is how real registers work, and the codes resolve only in the supplier
+      register. This question no longer touches supply at all.
+
+  - id: sh-04
+    shape: single_hop
+    q: What was found wrong with batch 4471?
+    answer: seal hardness out of tolerance
+    expected_sources: [quality_batch_4471.pdf]
+    negatives: [sh_baseline_must_win]
+    also_a_hop_of: [ld-01]
+    role: |
+      Fragment 1 of ld-01. Makes the claim testable in one line — "the
+      pieces are findable, they are just not rankable". sh-04 proves findable;
+      ld-01 proves not rankable. Same document, same sentence, two results.
+
+  - id: sh-05
+    shape: single_hop
+    q: Where is Alpha Dichtungen GmbH based?
+    answer: ASSIGN_AT_GENERATION
+    expected_sources: [supplier_register.pdf]
+    negatives: [sh_baseline_must_win]
+    role: |
+      The independent one, so the shape is not monotone. Also gives
+      supplier_register.pdf a positive fact — it currently exists only to host
+      the plausible wrong chunk Path A retrieves for mh-01.
+
+  - id: mh-01
+    shape: multi_hop
+    q: Which supplier of the recalled part also supplies the Bamberg plant?
+    answer: Beta Valve Co.
+    expected_sources: [recall_R-2025-014.pdf, BOM_BV_series_2025.pdf, plant_register.pdf]
+    wrong_answer_path_a: Alpha Dichtungen GmbH
+    negatives: [multihop_supplier]
+    MEASURED: |
+      2026-09-28, Path A end to end (retrieve top 5, then generate). Names
+      Alpha Dichtungen GmbH in 3 of 3 runs. One run in three is fully
+      confident and the other two hedge after naming it, so run it several
+      times. The confident form:
+
+        "Alpha Dichtungen GmbH, which supplies the part that failed in the
+         recall, also supplies the Bamberg plant. This is indicated by the
+         fact that Alpha Dichtungen GmbH is one of the approved sources
+         supplying the Bamberg region [1][2]."
+
+      Fluent, cited, and wrong — the claim that Alpha supplied the recalled
+      part has nothing behind it. Retrieved passage [1] is the supplier
+      register's regional prose at 0.712, exactly the intended decoy.
+    role: the central multi-hop example
+
+  - id: mh-02
+    shape: multi_hop
+    q: Who was authorised to approve the FKM-70 material change at the time it was made?
+    answer: PERSON_A (holder under doa-2024-01)
+    expected_sources: [CR-88_seal_material.pdf, material_change_approval_procedure.pdf, doa_matrix_2024_01.pdf, role_appointments.pdf]
+    wrong_answer_naive: PERSON_B (current holder)
+    negatives: [authority_split, fkm70_undiscoverable]
+    role: four hops with a date dependency
+
+  - id: mh-03
+    shape: multi_hop
+    q: Which valve assembly did change request CR-88 apply to, and what is that
+       assembly's maximum operating temperature?
+    answer: BV-12; temperature ASSIGN_AT_GENERATION
+    expected_sources: ["CR-88_seal_material.pdf", BOM_BV_series_2025.pdf]
+    wrong_answer_path_a: BV-13's maximum operating temperature
+    negatives: [mh03_identity]
+    role: |
+      sh-01 reached the long way — same fact, same document, one hop versus two.
+      The pair shows difficulty is a property of the PATH, not of the fact.
+      Also the only question that makes BV-13 earn its place, and the one that
+      turns the exact-match-versus-embeddings claim into a measurement.
+
+  - id: mh-04
+    shape: multi_hop
+    q: Give me the full picture on the part recalled in R-2025-014 — who supplies
+       it, which of those suppliers serve the Bamberg plant, and who held the
+       authority to approve its seal material change at the time that change
+       was made.
+    answer: |
+      BV-12. Suppliers: Alpha Dichtungen GmbH and Beta Valve Co. Of those, Beta
+      Valve Co. serves Bamberg. The material change (CR-88) required Level 3;
+      the holder under doa-2024-01, in force on that date, was PERSON_A.
+    expected_sources: [recall_R-2025-014.pdf, BOM_BV_series_2025.pdf, plant_register.pdf,
+                       "CR-88_seal_material.pdf", material_change_approval_procedure.pdf,
+                       doa_matrix_2024_01.pdf, role_appointments.pdf]
+    negatives: [mh04_no_summary, multihop_supplier, authority_split]
+    role: |
+      The fan-out case. After one shared hop it splits into three legs that
+      do not depend on each other; nothing else in the set has that shape.
+    note: |
+      A composition of mh-01 and mh-02. It introduces no new evidence and
+      double-counts documents; its value is structural. Scored as three
+      independent legs, not one answer.
+
+  - id: mh-05
+    shape: multi_hop
+    q: What seal material did the BV-12 use before the current one, and when did
+       it change?
+    answer: NBR-70; changed at CR-88, date ASSIGN_AT_GENERATION
+    expected_sources: ["CR-88_seal_material.pdf", BOM_BV_series_2024.pdf]
+    wrong_answer_naive: FKM-70 — the current material, read from the 2025 BOM
+    negatives: [mh05_material_supersession]
+    role: |
+      Supersession on a different axis from mh-02. mh-02 selects a MATRIX by
+      date; this selects a DOCUMENT EDITION by date — you cannot know which BOM
+      to open until you know when the change happened. Gives BOM_BV_series_2024
+      a reason to exist.
+    note: |
+      Costs one plausibility point: CR-88 records what the material became but
+      not what it was. Short change-request records do read like that, but the
+      omission is deliberate and load-bearing.
+
+  - id: ld-01
+    shape: long_distance
+    q: Why did the BV-12 programme slip?
+    answer: batch rejection, rig reallocation, seal material change to FKM-70, and the revalidation it forced
+    expected_sources: [quality_batch_4471.pdf, testlab_minutes_q1_2025.pdf, CR-88_seal_material.pdf, cert_fkm70_revalidation.pdf]
+    negatives: [programme_slip, fkm70_undiscoverable]
+    unwritten_abstraction: slip
+    role: the central long-distance example
+
+  - id: ld-02
+    shape: long_distance
+    q: Is there a recurring quality problem at the Bamberg plant?
+    answer: |
+      Yes — four separate seal-hardness nonconformities at Bamberg across 2025,
+      raised by four different functions, none referencing any of the others.
+      Count and dates ASSIGN_AT_GENERATION.
+    expected_sources: [ncr_bamberg_2025_02.pdf, supplier_car_2025_05.pdf,
+                       line_stoppage_bamberg_2025_08.pdf, customer_return_2025_10.pdf]
+    wrong_answer_path_a: |
+      the "Bamberg site quality overview" section of facilities_site_services.pdf
+      — a near-perfect lexical match that reports no incidents
+    negatives: [ld02_recurring]
+    unwritten_abstraction: recurring
+    role: |
+      The only question whose answer is a judgement about repetition.
+      Gives facilities_site_services.pdf a defined job instead of "high lexical
+      overlap" as a vibe.
+
+  - id: ld-03
+    shape: long_distance
+    q: Why was the housing bolt torque changed?
+    answer: |
+      Field returns showed fasteners backing off in service; lab vibration
+      testing reproduced it; the tolerance band was found too wide; CR-91
+      added a diagonal sequence and a 30-minute recheck. The VALUE did not
+      change. Specifics ASSIGN_AT_GENERATION.
+    expected_sources: [field_returns_2024_h2.pdf, testlab_vibration_M8.pdf,
+                       tolerance_tables.pdf, "CR-91_torque_update.pdf"]
+    wrong_answer_path_a: |
+      CR-91_torque_update.pdf — top hit, states what changed, explains nothing
+    negatives: [ld03_torque_cause]
+    unwritten_abstraction: why
+    role: |
+      A second spine, independent of the recall. Gives CR-91 a
+      document and puts tolerance_tables.pdf on an evidence path.
+
+  - id: ld-04
+    shape: long_distance
+    q: What do we still owe the regulator on recall R-2025-014?
+    answer: |
+      Four open obligations — the 90-day follow-up report, the in-progress
+      corrective action, the residual field stock not yet returned, and the
+      scheduled FKM-70 revalidation. Details ASSIGN_AT_GENERATION.
+    expected_sources: ["regulator_notification_R-2025-014.pdf", capa_commitment_2025_04.pdf,
+                       field_stock_return_log.pdf, cert_fkm70_revalidation.pdf]
+    negatives: [ld04_obligations_open]
+    unwritten_abstraction: outstanding
+    role: |
+      The largest evidence set in the benchmark.
+
+  - id: cl-01
+    shape: context_loss
+    q: What torque applies to the BV-12 housing bolts?
+    answer: 40 Nm, diagonal sequence, recheck after 30 minutes
+    expected_sources: [work_instruction_rev_D.pdf]
+    negatives: [torque_referent]
+    mechanism: referent stranded across a chunk boundary
+    role: the lost-referent example — fixable by structural chunking
+
+  - id: cl-02
+    shape: context_loss
+    q: What is the flatness tolerance for the BV-12 housing face?
+    answer: ASSIGN_AT_GENERATION — meaningful only together with its tolerance class
+    expected_sources: [tolerance_tables.pdf]
+    negatives: [cl02_table_header]
+    mechanism: table row orphaned from its column headers
+    role: |
+      The spatial version of cl-01. Puts tolerance_tables.pdf on an
+      evidence path; it was listed as a parsing challenge with no question
+      pointing at it.
+
+  - id: cl-03
+    shape: context_loss
+    q: What seal material is currently specified for the BV-12?
+    answer: FKM-70
+    expected_sources: [BOM_BV_series_2025.pdf, "CR-88_seal_material.pdf"]
+    wrong_answer_path_a: |
+      NBR-70 — from a BOM_BV_series_2024.pdf chunk that never says it is the
+      2024 edition
+    negatives: [cl03_edition_orphaned]
+    mechanism: document edition orphaned from its content
+    role: |
+      The only test of the title-prefix fix. Mirror of mh-05.
+
+  - id: cl-04
+    shape: context_loss
+    q: What approval level is required for a documentation-only change?
+    answer: Level 1 (ASSIGN_AT_GENERATION)
+    expected_sources: [material_change_approval_procedure.pdf]
+    wrong_answer_path_a: |
+      Level 3 — a true sentence retrieved without the clause that scopes it to
+      safety-critical interfaces. Correct, cited, and about a different class
+      of change.
+    negatives: [cl04_scope_orphaned]
+    mechanism: scope qualifier orphaned from the rule it limits
+    role: |
+      The failure is applicability, not accuracy. Nothing else in
+      the benchmark tests that.
+
+  - id: ag-01
+    shape: aggregation
+    q: Which plant had the most rework in 2025, and was the trend improving?
+    answer: |
+      Plant Z (Ingolstadt), and yes — the trend improved across the year.
+      Monthly counts ASSIGN_AT_GENERATION from the seeded generator; the
+      winner and the direction are designed, then asserted in code.
+    expected_sources: ["rework_2025_01.pdf .. rework_2025_12.pdf"]
+    negatives: [aggregation_needs_all]
+    k_property: |
+      Twelve homogeneous reports, needed in order. The series length is fixed
+      but larger than any sensible k — and twelve is wrong for ag-02.
+    role: the basic aggregation case
+
+  - id: ag-02
+    shape: aggregation
+    q: How many change requests were raised against the BV series, and how many
+       of them required Level 3 approval?
+    answer: ASSIGN_AT_GENERATION — a count of CRs, and a subset count
+    expected_sources: ["every CR-*.pdf in the corpus", material_change_approval_procedure.pdf]
+    negatives: [ag02_no_register]
+    k_property: |
+      The size of the set is learned by reading it. No value of k can be right
+      for a population whose size is not known in advance.
+    role: |
+      The second of three aggregation cases, each failing on k for a
+      different reason. Also the question where exact-match search decisively
+      beats similarity search.
+
+  - id: ag-03
+    shape: aggregation
+    q: Did rework at the Bamberg plant fall after the housing bolt procedure
+       was revised?
+    answer: ASSIGN_AT_GENERATION — a before/after comparison across the CR-91 date
+    expected_sources: ["CR-91_torque_update.pdf", "rework_2025_01.pdf .. rework_2025_12.pdf"]
+    negatives: [ag03_pivot_discovered, aggregation_needs_all]
+    k_property: |
+      The BOUNDARY of the aggregation is not in the question. You cannot begin
+      counting until you have found a date held in a different document.
+    role: |
+      Simultaneously multi-hop and aggregate, which nothing else in
+      the set is. Hangs aggregation off the CR-91 spine rather than the recall,
+      and gives the twelve rework documents a second reason to exist.
+
+  - id: am-01
+    shape: ambiguous
+    q: Who is authorised to approve a seal material change?
+    expected_behaviour: clarify
+    ambiguity_axis: date
+    answer: |
+      No single answer. PERSON_A held Level 3 under doa-2024-01; PERSON_B holds
+      it under doa-2025-03. Correct behaviour is to ask as at what date, or to
+      answer with both, scoped.
+    expected_sources: [material_change_approval_procedure.pdf, doa_matrix_2024_01.pdf,
+                       doa_matrix_2025_03.pdf]
+    negatives: [am01_undated_authority]
+    role: |
+      Correct behaviour is to say so rather than produce something.
+      Pairs with mh-02 on the same documents. Costs the corpus nothing.
+
+  - id: am-02
+    shape: ambiguous
+    q: What is the tightening torque for the housing bolts?
+    expected_behaviour: clarify
+    ambiguity_axis: assembly
+    answer: |
+      No single answer. BV-12 uses M8 at 40 Nm; BV-13 uses a different fastener
+      at a different value. Correct behaviour is to ask which assembly.
+    expected_sources: [work_instruction_rev_D.pdf, work_instruction_BV13.pdf]
+    negatives: [am02_undisambiguated_fastener]
+    role: |
+      Makes the "true sentence, wrong bolt, sourced" danger an actual
+      measurement. Finishes BV-13 as a part rather than a diagram prop.
+
+  - id: un-01
+    shape: unanswerable
+    q: What is the warranty period for the BV-12?
+    answer: NOT_IN_CORPUS
+    expected_behaviour: decline
+    expected_sources: []
+    negatives: [ballast_vocabulary]
+    role: |
+      Refusal at the FIRST lookup — nothing comes back and declining is easy.
+      Its correctness is guaranteed by the ballast, not by the authored
+      documents.
+
+  - id: un-02
+    shape: unanswerable
+    q: Which supplier of the recalled part also supplies the Regensburg plant?
+    answer: NOT_IN_CORPUS — there is no record of a Regensburg plant
+    expected_behaviour: decline
+    expected_sources: []
+    negatives: [un02_absent_plant, ballast_vocabulary]
+    wrong_answer_path_a: |
+      probably Bamberg's supplier, cited — embeddings do not separate German
+      city names well. Confidently wrong in the same shape as mh-01, on a
+      question whose right answer was "we do not have that".
+    role: |
+      mh-01 with exactly one entity swapped, so a single variable is isolated:
+      same chain, same documents, two thirds of the same work, and the only
+      difference is whether the last hop exists. The only test of refusal
+      AFTER partial success.
+
+# ---------------------------------------------------------------------------
+# GRADING — not every shape is scored the same way, and the grader must branch.
+# ---------------------------------------------------------------------------
+grading:
+  default: |
+    Outcome — is the final answer correct and grounded — plus sources_hit
+    against expected_sources.
+  ambiguous: |
+    An ambiguous question is answered CORRECTLY by refusing. Score: did the
+    system decline to give a single answer, and did it name the right
+    ambiguity_axis (date for am-01, assembly for am-02)? Grading these with the
+    default outcome scorer marks a correct refusal as a failure, which is
+    backwards.
+  unanswerable: |
+    Correct behaviour is to say the corpus does not contain it. A produced
+    answer is a failure however fluent. sources_hit is not meaningful — the
+    expected source set is empty by design.
+  note: |
+    Path A has an ambiguity detector (backend/app/ambiguity.py). MEASURED
+    2026-09-28 with OPENROUTER_API_KEY configured: it passes NEITHER ambiguous
+    question, and the two fail for different reasons — both of them Path A
+    defects rather than corpus problems.
+
+    am-02, status `skipped`. should_check_ambiguity() only calls the model when
+    the top two reranker scores are within ambiguity_score_margin (0.05). The
+    measured gap was 0.0715, so no call was made. Underneath that is the
+    limitation predicted before the run: the SECOND horn was never retrieved at
+    all — work_instruction_rev_D.pdf is absent from the top three, which are
+    work_instruction_BV13.pdf (0.897), CR-91_torque_update.pdf (0.826) and
+    testlab_vibration_M8.pdf (0.599). The detector can only notice a conflict
+    between passages it RETRIEVED. It cannot see an ambiguity whose two answers
+    do not both surface, which is precisely the case it most needs to catch.
+
+    am-01, status `error`. The model was called and replied sensibly — that
+    the approver "depends on the delegation of authority applicable on the
+    date of the request" — but it returned decision `answer`, not `clarify`,
+    AND its `reason` ran to 505 characters against a max_length of 300 on
+    AmbiguityDecision, so pydantic rejected it and the exception handler
+    recorded `error`. Two independent failures stacked; fixing the cap alone
+    would not change the benchmark result.
+
+    Both are worth recording: this is a baseline component failing quietly
+    in two different ways while reporting success-shaped output.
+
+# target totals. Lifted out of `questions:` — it is a sibling of
+# the list, not a member of it (as written, it made the file unparseable).
+question_targets:
+  single_hop: 5
+  multi_hop: 5
+  long_distance: 4
+  context_loss: 4
+  aggregation: 3
+  ambiguous: 2
+  unanswerable: 2
+
+# ---------------------------------------------------------------------------
+# TESTS — the suite the negatives compile down to. Mechanical, not by eye.
+# Everything here except the last two runs WITHOUT a model or a database.
+# ---------------------------------------------------------------------------
+tests:
+  test_facts_present:        every fact greppable, in exactly the expected document
+  test_negatives_hold:       every assert_no_cooccurrence holds across the corpus
+  test_forbidden_words:      no fragment contains its question's unwritten abstraction
+  test_no_single_chunk:      no single chunk holds all entities for a multi-hop question
+  test_sources_exist:        every expected_sources filename resolves
+  test_chunking_fixes_context_loss: |
+    for cl-01..cl-04, the retrieved unit after structural chunking contains
+    BOTH halves of the split — see each cl negative's fixed_by
+  test_baseline_fails:       Path A near zero on multi_hop and long_distance
+  test_baseline_succeeds:    Path A correct on every single_hop question
+  note: |
+    RECOMMENDED: write this suite BEFORE generating, not after. Most of it
+    needs no API key and no database, and it is what tells you the expensive
+    step worked. Discovering a collapsed multi-hop after generating 80 ballast
+    documents is the wrong order.

@@ -1,0 +1,26 @@
+{
+  "file": "ballast_pkg_006.pdf",
+  "doc_id": "PKG-2025-006",
+  "date": "2025-01",
+  "pages_total": 39,
+  "sections": [
+    {
+      "section": "1. Pack configuration",
+      "page_start": 1,
+      "page_end": 13,
+      "pages": "1-13"
+    },
+    {
+      "section": "2. Materials",
+      "page_start": 14,
+      "page_end": 26,
+      "pages": "14-26"
+    },
+    {
+      "section": "3. Labelling",
+      "page_start": 27,
+      "page_end": 39,
+      "pages": "27-39"
+    }
+  ]
+}

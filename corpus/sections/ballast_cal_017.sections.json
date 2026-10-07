@@ -1,0 +1,26 @@
+{
+  "file": "ballast_cal_017.pdf",
+  "doc_id": "CAL-2025-017",
+  "date": "2025-03",
+  "pages_total": 37,
+  "sections": [
+    {
+      "section": "1. Instruments",
+      "page_start": 1,
+      "page_end": 13,
+      "pages": "1-13"
+    },
+    {
+      "section": "2. Calibration record",
+      "page_start": 14,
+      "page_end": 26,
+      "pages": "14-26"
+    },
+    {
+      "section": "3. Overdue items",
+      "page_start": 27,
+      "page_end": 37,
+      "pages": "27-37"
+    }
+  ]
+}

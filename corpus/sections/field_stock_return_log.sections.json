@@ -1,0 +1,26 @@
+{
+  "file": "field_stock_return_log.pdf",
+  "doc_id": "FS-LOG-2026-02",
+  "date": "2026-02",
+  "pages_total": 3,
+  "sections": [
+    {
+      "section": "1. Units shipped",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Units returned",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    },
+    {
+      "section": "3. Reconciliation",
+      "page_start": 3,
+      "page_end": 3,
+      "pages": "3"
+    }
+  ]
+}

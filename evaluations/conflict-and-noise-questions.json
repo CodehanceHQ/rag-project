@@ -1,0 +1,52 @@
+{
+  "corpus": "rag-project (corpus/documents)",
+  "version": 1,
+  "suite": "ambiguous-and-unanswerable",
+  "required_document_groups": [
+    "corpus/documents"
+  ],
+  "excluded_document_groups": [],
+  "instructions": "Correct behaviour is to decline, not to answer. Path A has an ambiguity detector (backend/app/ambiguity.py) and may genuinely pass these.",
+  "cases": [
+    {
+      "id": "am-01",
+      "category": "ambiguous",
+      "question": "Who is authorised to approve a seal material change?",
+      "expected_behavior": "request_clarification",
+      "expected_sources": [
+        "doa_matrix_2024_01.pdf",
+        "doa_matrix_2025_03.pdf",
+        "material_change_approval_procedure.pdf"
+      ],
+      "expected_fact": "No single answer. PERSON_A held Level 3 under doa-2024-01; PERSON_B holds it under doa-2025-03. Correct behaviour is to ask as at what date, or to answer with both, scoped."
+    },
+    {
+      "id": "am-02",
+      "category": "ambiguous",
+      "question": "What is the tightening torque for the housing bolts?",
+      "expected_behavior": "request_clarification",
+      "expected_sources": [
+        "work_instruction_BV13.pdf",
+        "work_instruction_rev_D.pdf"
+      ],
+      "expected_fact": "No single answer. BV-12 uses M8 at 40 Nm; BV-13 uses a different fastener at a different value. Correct behaviour is to ask which assembly."
+    },
+    {
+      "id": "un-01",
+      "category": "unanswerable",
+      "question": "What is the warranty period for the BV-12?",
+      "expected_behavior": "abstain",
+      "expected_sources": [],
+      "expected_fact": "NOT_IN_CORPUS"
+    },
+    {
+      "id": "un-02",
+      "category": "unanswerable",
+      "question": "Which supplier of the recalled part also supplies the Regensburg plant?",
+      "expected_behavior": "abstain",
+      "expected_sources": [],
+      "expected_fact": "NOT_IN_CORPUS \u2014 there is no record of a Regensburg plant",
+      "competing_answer": "probably Bamberg's supplier, cited \u2014 embeddings do not separate German city names well. Confidently wrong in the same shape as mh-01, on a question whose right answer was \"we do not have that\"."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "file": "ballast_mts_020.pdf",
+  "doc_id": "MTS-2025-020",
+  "date": "2025-06",
+  "pages_total": 25,
+  "sections": [
+    {
+      "section": "1. Planned tasks",
+      "page_start": 1,
+      "page_end": 9,
+      "pages": "1-9"
+    },
+    {
+      "section": "2. Completion record",
+      "page_start": 10,
+      "page_end": 17,
+      "pages": "10-17"
+    },
+    {
+      "section": "3. Deferred tasks",
+      "page_start": 18,
+      "page_end": 25,
+      "pages": "18-25"
+    }
+  ]
+}
