@@ -4,6 +4,12 @@
 PYTHON ?= python3
 export PYTHON
 
+# Unusual ports on purpose, so they are unlikely to clash with other tools.
+# They are also written in .env (FRONTEND_ORIGIN, NEXT_PUBLIC_API_URL).
+API_PORT := 18001
+WEB_PORT := 13001
+export API_PORT WEB_PORT
+
 COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 # Compose v2 can block until the container's health check passes.
 WAIT := $(shell docker compose version >/dev/null 2>&1 && echo "--wait")
@@ -29,7 +35,7 @@ db-down:
 	$(COMPOSE) down
 
 api:
-	.venv/bin/uvicorn app.main:app --app-dir backend --reload --port 8001
+	.venv/bin/uvicorn app.main:app --app-dir backend --reload --port $(API_PORT)
 
 web:
-	cd frontend && npm run dev -- -p 3001
+	cd frontend && npm run dev -- -p $(WEB_PORT)

@@ -6,6 +6,10 @@ services:
   mongodb:
     image: mongodb/mongodb-atlas-local:8.0
     container_name: rag-project-mongodb
+    # Atlas Local records this name in its replica set. Without a fixed one, a
+    # recreated container gets a new random hostname and refuses to start on
+    # its existing data.
+    hostname: mongodb
     environment:
       MONGODB_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-rag}
       MONGODB_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-rag-local-password}

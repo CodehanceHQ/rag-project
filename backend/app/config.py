@@ -24,12 +24,12 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     openrouter_model: str = "openai/gpt-4.1-mini"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_site_url: str = "http://localhost:3000"
+    openrouter_site_url: str = "http://localhost:13001"
     openrouter_app_name: str = "Local RAG Studio"
     openrouter_timeout_seconds: float = 30.0
     ambiguity_score_margin: float = 0.05
     ambiguity_max_candidates: int = 6
-    frontend_origin: str = "http://localhost:3000"
+    frontend_origin: str = "http://localhost:13001"
     max_upload_mb: int = 50
     chunk_size: int = 1000
     chunk_overlap: int = 180

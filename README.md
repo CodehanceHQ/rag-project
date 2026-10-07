@@ -11,7 +11,7 @@ open -a OrbStack   # start the Docker engine, if it isn't running
 make start
 ```
 
-Then open <http://localhost:3001>.
+Then open <http://localhost:13001>.
 
 `make start` checks your dependencies, installs the project the first time, starts MongoDB, and starts the API and the UI. It is safe to run again: anything already running is left alone. `Ctrl+C` stops the API and the UI; MongoDB keeps running until `make db-down`.
 
@@ -35,8 +35,8 @@ RAG has two halves. **Ingestion** happens once per document and prepares it for 
 
 ```mermaid
 flowchart LR
-    U[You] --> UI[Next.js UI<br/>port 3001]
-    UI --> API[FastAPI backend<br/>port 8001]
+    U[You] --> UI[Next.js UI<br/>port 13001]
+    UI --> API[FastAPI backend<br/>port 18001]
     API --> EMB[Embedding model<br/>runs locally]
     API --> RR[Reranker model<br/>runs locally]
     API --> DB[(MongoDB Atlas Local<br/>port 27018)]
@@ -127,18 +127,18 @@ The sample corpus is built to trigger each of these.
 
 ## Using it
 
-**In the UI** (<http://localhost:3001>): drop documents in, watch them ingest, inspect the stored chunks and vectors, and run searches. Results show the vector, full-text, fusion and reranker scores separately. The UI shows retrieved passages; it does not generate answers.
+**In the UI** (<http://localhost:13001>): drop documents in, watch them ingest, inspect the stored chunks and vectors, and run searches. Results show the vector, full-text, fusion and reranker scores separately. The UI shows retrieved passages; it does not generate answers.
 
-**Through the API** (<http://localhost:8001/docs> lists every endpoint):
+**Through the API** (<http://localhost:18001/docs> lists every endpoint):
 
 ```bash
 # passages only
-curl -s -X POST http://localhost:8001/search \
+curl -s -X POST http://localhost:18001/search \
   -H 'Content-Type: application/json' \
   -d '{"query": "What was found wrong with batch 4471?"}' | jq
 
 # passages plus a generated answer (needs OPENROUTER_API_KEY)
-curl -s -X POST http://localhost:8001/answer \
+curl -s -X POST http://localhost:18001/answer \
   -H 'Content-Type: application/json' \
   -d '{"query": "What was found wrong with batch 4471?"}' | jq
 ```
@@ -150,7 +150,7 @@ Both evaluations need the sample corpus loaded.
 **Retrieval** checks which documents came back. Use **Run evaluation** in the UI, or:
 
 ```bash
-curl -s -X POST http://localhost:8001/evaluations/run | jq
+curl -s -X POST http://localhost:18001/evaluations/run | jq
 ```
 
 **Answers** checks what the system said: whether it stated the expected fact, avoided the known wrong one, and whether every named claim appears in a passage it cited. It needs `OPENROUTER_API_KEY`.
@@ -203,8 +203,8 @@ Delete documents through the UI, not directly in the database, so the file, its 
 | Symptom | What to do |
 | --- | --- |
 | `make start` stops at the checks | Follow the `fix:` line printed under each failure |
-| "API offline" in the UI | Check <http://localhost:8001/health>; if MongoDB is down, run `make db-up` |
+| "API offline" in the UI | Check <http://localhost:18001/health>; if MongoDB is down, run `make db-up` |
 | "The vector index is still building" | Wait a few seconds after first start and retry |
 | First upload or first search is slow | The embedding model and the reranker download once, then are cached |
 | A PDF reports that no text was found | It is a scanned image; OCR isn't included |
-| Port 8001 or 3001 is taken by something else | `make start` assumes whatever is listening there is this project; stop the other process |
+| `make start` says a port is in use by another program | It names the program and its PID; stop that program and run `make start` again |

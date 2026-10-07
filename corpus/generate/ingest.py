@@ -16,7 +16,7 @@ import httpx
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DOCS = ROOT / "corpus/documents"
-API = "http://localhost:8001"
+API = "http://localhost:18001"
 
 
 def poll_initial(c, attempts=10):
