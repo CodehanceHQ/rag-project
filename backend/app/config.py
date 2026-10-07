@@ -31,8 +31,10 @@ class Settings(BaseSettings):
     ambiguity_max_candidates: int = 6
     frontend_origin: str = "http://localhost:13001"
     max_upload_mb: int = 50
+    chunking_strategy: str = "recursive"
     chunk_size: int = 1000
     chunk_overlap: int = 180
+    semantic_breakpoint_percentile: float = 90.0
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

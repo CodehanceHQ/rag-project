@@ -77,11 +77,30 @@ sequenceDiagram
 ```
 
 1. **Extract.** Text is pulled from the file with its page, slide or sheet number.
-2. **Chunk.** The text is split into pieces of about 1,000 characters that overlap by 180, so a sentence cut at a boundary still appears whole in one piece.
+2. **Chunk.** The text is cut into pieces small enough to embed. How it is cut is a setting; see [Chunking strategies](#chunking-strategies). The default splits into pieces of about 1,000 characters that overlap by 180, so a sentence cut at a boundary still appears whole in one piece.
 3. **Embed.** Each chunk is turned into a vector of 384 numbers that represents its meaning. Chunks with similar meaning get vectors that are close together.
 4. **Store.** The chunk text, its vector and where it came from go into MongoDB, which indexes them two ways: by vector and by words.
 
 The system also reads `Status:` and `Effective date:` lines from a document's header, so out-of-date documents can be filtered out later.
+
+### Chunking strategies
+
+`CHUNKING_STRATEGY` in `.env` chooses how documents are cut. Each strategy is one small class in `backend/app/chunking/`.
+
+| Strategy | Where it cuts | Good at | Weak at |
+| --- | --- | --- | --- |
+| `recursive` (default) | By size, at paragraph, line or sentence breaks | Any text, fast, predictable sizes | Separates a fact from the thing it refers to |
+| `structural` | At headings: one chunk per section | Keeping what the author grouped together | Long sections exceed what the embedding model reads |
+| `hybrid` | At headings, then by size inside long sections; each piece starts with its document and section name | Pieces that fit the model and still say where they came from | Needs detectable headings |
+| `semantic` | Where the topic changes, found by embedding every sentence | Text with no usable structure | Tables and lists; slower to ingest |
+
+To try one, set it in `.env`, restart the API, and re-ingest everything:
+
+```bash
+.venv/bin/python corpus/generate/ingest.py --fresh
+```
+
+`--fresh` deletes the documents already stored, so the whole corpus is chunked and embedded again. Each chunk and document records the strategy that produced it, and `/health` shows the one in use. Run the evaluations after each change to compare.
 
 ### Retrieval: from a question to passages
 
@@ -171,6 +190,7 @@ Settings live in `.env`, which `make setup` creates from `.env.example`. Ingesti
 | --- | --- |
 | `OPENROUTER_API_KEY` | Enables generated answers and the ambiguity check. Without it, search still works. |
 | `OPENROUTER_MODEL` | The language model used for both |
+| `CHUNKING_STRATEGY` | How documents are cut into chunks: `recursive`, `structural`, `hybrid` or `semantic`. Re-ingest after changing it. |
 | `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS` | The local embedding model. Change both together, then re-ingest every document. |
 | `RERANKER_MODEL` | The local reranker |
 | `MINIMUM_RELEVANCE_SCORE` | The abstain threshold (0.15). Recalibrate it if you change the corpus or either model. |

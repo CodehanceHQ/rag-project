@@ -15,6 +15,7 @@ from pymongo.errors import PyMongoError
 
 from .config import settings
 from .ambiguity import detect_ambiguity
+from .chunking import get_chunker
 from .database import chunks, documents, ensure_database, raw_files, search_index_status, vector_index_status
 from .embeddings import get_embeddings
 from .evaluation import assess_case, load_cases
@@ -41,6 +42,7 @@ def _serialize_document(record: Dict[str, Any]) -> Dict[str, Any]:
         "chunk_count": record.get("chunk_count", 0),
         "vector_count": record.get("vector_count", 0),
         "embedding_dimensions": record.get("embedding_dimensions"),
+        "chunking_strategy": record.get("chunking_strategy"),
         "raw_file_id": str(record["raw_file_id"]),
         "created_at": record["created_at"].isoformat(),
         "error": record.get("error"),
@@ -50,6 +52,7 @@ def _serialize_document(record: Dict[str, Any]) -> Dict[str, Any]:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    get_chunker(settings.chunking_strategy)  # stop now if CHUNKING_STRATEGY is misspelt
     ensure_database()
     yield
 
@@ -84,6 +87,7 @@ def health() -> Dict[str, Any]:
             "text_index": search_index_status(settings.mongodb_text_index),
             "embedding_model": settings.embedding_model,
             "embedding_dimensions": settings.embedding_dimensions,
+            "chunking_strategy": settings.chunking_strategy,
             "reranker_model": settings.reranker_model,
             "minimum_relevance_score": settings.minimum_relevance_score,
             "ambiguity_llm_configured": bool(settings.openrouter_api_key),

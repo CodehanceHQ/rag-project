@@ -3,10 +3,9 @@ from datetime import datetime, timezone
 from typing import Dict, List
 
 from bson import ObjectId
-from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langsmith import traceable
 
+from .chunking import Chunk, SourceDocument, get_chunker
 from .config import settings
 from .database import chunks, documents, raw_files
 from .embeddings import get_embeddings
@@ -43,18 +42,15 @@ def ingest_document(document_id_text: str) -> None:
             raise ValueError("The document did not contain readable text.")
 
         _set_status(document_id, "chunking", 42, character_count=character_count)
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=settings.chunk_size,
-            chunk_overlap=settings.chunk_overlap,
-            add_start_index=True,
+        chunker = get_chunker(settings.chunking_strategy)
+        pieces: List[Chunk] = chunker.chunk(
+            SourceDocument(filename=record["filename"], data=data, pages=extracted)
         )
-        split_documents: List[Document] = splitter.split_documents(extracted)
-        split_documents = [item for item in split_documents if item.page_content.strip()]
-        if not split_documents:
+        if not pieces:
             raise ValueError("The document produced no searchable chunks.")
 
-        _set_status(document_id, "embedding", 58, chunk_count=len(split_documents))
-        vectors = get_embeddings().embed_documents([item.page_content for item in split_documents])
+        _set_status(document_id, "embedding", 58, chunk_count=len(pieces))
+        vectors = get_embeddings().embed_documents([piece.text for piece in pieces])
         if vectors and len(vectors[0]) != settings.embedding_dimensions:
             raise ValueError(
                 f"Embedding model returned {len(vectors[0])} dimensions, but EMBEDDING_DIMENSIONS is "
@@ -64,16 +60,17 @@ def ingest_document(document_id_text: str) -> None:
         _set_status(document_id, "storing", 82, vector_count=len(vectors))
         chunks.delete_many({"document_id": document_id_text})
         rows: List[Dict[str, object]] = []
-        for index, (item, vector) in enumerate(zip(split_documents, vectors)):
+        for index, (piece, vector) in enumerate(zip(pieces, vectors)):
             rows.append(
                 {
                     "document_id": document_id_text,
                     "filename": record["filename"],
                     "chunk_index": index,
-                    "content": item.page_content,
-                    "page": item.metadata.get("page"),
-                    "section": item.metadata.get("section"),
-                    "start_index": item.metadata.get("start_index"),
+                    "content": piece.text,
+                    "page": piece.page,
+                    "section": piece.section,
+                    "start_index": piece.start_index,
+                    "chunking_strategy": chunker.name,
                     "embedding": [float(value) for value in vector],
                     **source_metadata,
                     "created_at": _now(),
@@ -90,6 +87,7 @@ def ingest_document(document_id_text: str) -> None:
             chunk_count=len(rows),
             vector_count=len(rows),
             embedding_dimensions=settings.embedding_dimensions,
+            chunking_strategy=chunker.name,
             source_metadata=source_metadata,
             parser_version=2,
             completed_at=_now(),

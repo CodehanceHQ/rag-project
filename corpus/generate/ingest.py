@@ -8,8 +8,13 @@ uploads just queue behind the same worker while making failures harder to read.
 Expect 99 of 100 to reach `ready`. inspection_cert_scanned.pdf is image-only
 and _extract_pdf raises on it by design — see document-spec.yaml, tier special.
 
-    make db-up && make api          # in another terminal
+    make start                      # in another terminal
     .venv/bin/python corpus/generate/ingest.py
+    .venv/bin/python corpus/generate/ingest.py --fresh
+
+--fresh deletes every document already in the system first. Use it after
+changing CHUNKING_STRATEGY or the embedding model, so the whole corpus is
+chunked and embedded again.
 """
 import pathlib, sys, time
 import httpx
@@ -29,7 +34,7 @@ def poll_initial(c, attempts=10):
     sys.exit("API never answered on the initial listing.")
 
 
-def main(api=API):
+def main(api=API, fresh=False):
     pdfs = sorted(DOCS.glob("*.pdf"))
     if not pdfs:
         sys.exit("no PDFs in corpus/documents — run corpus/render/render.py first")
@@ -43,8 +48,17 @@ def main(api=API):
         try:
             health = c.get("/health").json()
         except httpx.ConnectError:
-            sys.exit(f"no API at {api} — start it with `make api`")
+            sys.exit(f"no API at {api} — start it with `make start`")
         print(f"api healthy: {health}\n")
+
+        if fresh:
+            present = poll_initial(c)
+            print(f"--fresh: deleting {len(present)} existing document(s)")
+            for d in present:
+                r = c.delete(f"/documents/{d['id']}")
+                if r.status_code != 200:
+                    sys.exit(f"could not delete {d['filename']}: {r.status_code} {r.text[:90]}")
+            print()
 
         existing = {d["filename"] for d in poll_initial(c)}
         if existing:
@@ -101,4 +115,5 @@ def main(api=API):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else API))
+    args = [a for a in sys.argv[1:] if a != "--fresh"]
+    sys.exit(main(args[0] if args else API, fresh="--fresh" in sys.argv[1:]))
