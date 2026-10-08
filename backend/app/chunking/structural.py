@@ -1,9 +1,9 @@
 """Structural chunking: one chunk per section.
 
 Cuts at the document's own headings and nowhere else, so a chunk is a unit
-the author intended. It applies no size limit. A long section stays whole,
-which means the embedding model may only read the start of it; that weakness
-is what the hybrid strategy addresses.
+the author intended. Unlike the other strategies it applies no size limit: a
+long section stays whole, which means the embedding model may only read the
+start of it. That weakness is what the hybrid strategy addresses.
 """
 from typing import List
 

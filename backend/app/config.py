@@ -32,8 +32,10 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:13001"
     max_upload_mb: int = 50
     chunking_strategy: str = "recursive"
-    chunk_size: int = 1000
-    chunk_overlap: int = 180
+    # Chunk size is measured in the embedding model's own tokens, so no chunk
+    # is longer than the model reads. 0 means "as many as the model reads".
+    chunk_tokens: int = 0
+    chunk_overlap_tokens: int = 40
     semantic_breakpoint_percentile: float = 90.0
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

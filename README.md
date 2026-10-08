@@ -77,7 +77,7 @@ sequenceDiagram
 ```
 
 1. **Extract.** Text is pulled from the file with its page, slide or sheet number.
-2. **Chunk.** The text is cut into pieces small enough to embed. How it is cut is a setting; see [Chunking strategies](#chunking-strategies). The default splits into pieces of about 1,000 characters that overlap by 180, so a sentence cut at a boundary still appears whole in one piece.
+2. **Chunk.** The text is cut into pieces small enough to embed. How it is cut is a setting; see [Chunking strategies](#chunking-strategies). The default cuts at paragraph and sentence breaks, with a small overlap between pieces so a sentence cut at a boundary still appears whole in one of them.
 3. **Embed.** Each chunk is turned into a vector of 384 numbers that represents its meaning. Chunks with similar meaning get vectors that are close together.
 4. **Store.** The chunk text, its vector and where it came from go into MongoDB, which indexes them two ways: by vector and by words.
 
@@ -93,6 +93,8 @@ The system also reads `Status:` and `Effective date:` lines from a document's he
 | `structural` | At headings: one chunk per section | Keeping what the author grouped together | Long sections exceed what the embedding model reads |
 | `hybrid` | At headings, then by size inside long sections; each piece starts with its document and section name | Pieces that fit the model and still say where they came from | Needs detectable headings |
 | `semantic` | Where the topic changes, found by embedding every sentence | Text with no usable structure | Tables and lists; slower to ingest |
+
+Chunk size is measured in tokens, the unit the embedding model counts in, not characters. The model reads a fixed number of tokens (256 for the default model) and ignores anything beyond that, and a table of numbers uses far more tokens per character than prose. So `recursive`, `hybrid` and `semantic` never produce a chunk longer than the model reads. `structural` is the exception: it keeps each section whole, however long.
 
 To try one, set it in `.env`, restart the API, and re-ingest everything:
 
@@ -191,6 +193,7 @@ Settings live in `.env`, which `make setup` creates from `.env.example`. Ingesti
 | `OPENROUTER_API_KEY` | Enables generated answers and the ambiguity check. Without it, search still works. |
 | `OPENROUTER_MODEL` | The language model used for both |
 | `CHUNKING_STRATEGY` | How documents are cut into chunks: `recursive`, `structural`, `hybrid` or `semantic`. Re-ingest after changing it. |
+| `CHUNK_TOKENS`, `CHUNK_OVERLAP_TOKENS` | Largest chunk and the overlap between chunks, in embedding-model tokens. `CHUNK_TOKENS=0` means as many as the model reads. |
 | `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS` | The local embedding model. Change both together, then re-ingest every document. |
 | `RERANKER_MODEL` | The local reranker |
 | `MINIMUM_RELEVANCE_SCORE` | The abstain threshold (0.15). Recalibrate it if you change the corpus or either model. |

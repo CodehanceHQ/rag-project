@@ -58,7 +58,8 @@ number that was guessed before measuring. Measure, then record the result.
 multi-column tables, and puts page furniture into every page's text — so the
 chunk-boundary assertions are only true or false **after rendering**.
 `verify_corpus.py` runs the real extractor (`backend/app/extractors.py`) and
-the real splitter (1000/180) and checks 36 constraints, including:
+a fixed 1000-character splitter with 180 overlap, and checks 36 constraints,
+including:
 
 - no chunk holds `BV-12` + `Bamberg` → mh-01 stays three hops
 - a chunk holds `40 Nm` with no `M8` → the context-loss example
