@@ -93,9 +93,16 @@ The system also reads `Status:` and `Effective date:` lines from a document's he
 | `structural` | At headings: one chunk per section | Keeping what the author grouped together | Long sections exceed what the embedding model reads |
 | `hybrid` | At headings, then by size inside long sections; each piece starts with its document and section name | Pieces that fit the model and still say where they came from | Needs detectable headings |
 | `semantic` | Where the topic changes, found by embedding every sentence | Text with no usable structure | Tables and lists; slower to ingest |
-| `contextual` | Wherever another strategy cuts; it then adds one model-written sentence to each piece saying what it is about | Pieces that depend on a neighbour, such as "Set it to 230 °C" | Paid and not local: one model call per chunk |
+| `contextual` | Wherever another strategy cuts; it then adds one model-written sentence to each piece saying what it is about | Pieces that depend on a neighbour, such as "Set it to 230 °C" | Needs a second, larger model: slow if run locally, paid if hosted |
 
-`contextual` is the one strategy that costs money and sends document text off your machine. It needs `OPENROUTER_API_KEY`, makes one model call per chunk (about 4,000 for the sample corpus), and uses `CONTEXTUAL_BASE_STRATEGY` to choose which of the other four does the cutting. The API refuses to start with it selected and no key set.
+`contextual` needs a model that can write, which the embedding model cannot do. `CONTEXTUAL_BASE_STRATEGY` chooses which of the other four strategies does the cutting, and `CONTEXTUAL_PROVIDER` chooses where the writing model runs:
+
+| Provider | Where | Cost | Speed | Privacy |
+| --- | --- | --- | --- | --- |
+| `local` (default) | A Hugging Face model on your machine, `HuggingFaceTB/SmolLM3-3B` unless you set `CONTEXTUAL_LOCAL_MODEL` | Free | A few seconds per chunk; hours for the whole sample corpus | Nothing leaves your machine |
+| `openrouter` | A hosted model | Paid: one call per chunk, about 4,000 for the sample corpus | Minutes for the whole corpus | Document text is sent to the provider |
+
+The local model downloads the first time it is used, about 6 GB for the default. To swap it, set `CONTEXTUAL_LOCAL_MODEL` to another Hugging Face chat model.
 
 Chunk size is measured in tokens, the unit the embedding model counts in, not characters. The model reads a fixed number of tokens (256 for the default model) and ignores anything beyond that, and a table of numbers uses far more tokens per character than prose. So `recursive`, `hybrid`, `semantic` and `contextual` never produce a chunk longer than the model reads. `structural` is the exception: it keeps each section whole, however long.
 
@@ -196,7 +203,9 @@ Settings live in `.env`, which `make setup` creates from `.env.example`. Ingesti
 | `OPENROUTER_API_KEY` | Enables generated answers and the ambiguity check. Without it, search still works. |
 | `OPENROUTER_MODEL` | The language model used for both |
 | `CHUNKING_STRATEGY` | How documents are cut into chunks: `recursive`, `structural`, `hybrid`, `semantic` or `contextual`. Re-ingest after changing it. |
-| `CONTEXTUAL_BASE_STRATEGY`, `CONTEXTUAL_MODEL` | For `contextual` only: the strategy that does the cutting, and the model that writes the sentence (blank uses `OPENROUTER_MODEL`). |
+| `CONTEXTUAL_BASE_STRATEGY` | For `contextual` only: the strategy that does the cutting. |
+| `CONTEXTUAL_PROVIDER` | For `contextual` only: `local` (a Hugging Face model on your machine) or `openrouter` (hosted, paid). |
+| `CONTEXTUAL_LOCAL_MODEL`, `CONTEXTUAL_MODEL` | The model that writes the sentence: locally, and hosted (blank uses `OPENROUTER_MODEL`). |
 | `CHUNK_TOKENS`, `CHUNK_OVERLAP_TOKENS` | Largest chunk and the overlap between chunks, in embedding-model tokens. `CHUNK_TOKENS=0` means as many as the model reads. |
 | `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS` | The local embedding model. Change both together, then re-ingest every document. |
 | `RERANKER_MODEL` | The local reranker |

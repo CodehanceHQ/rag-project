@@ -5,7 +5,7 @@
     hybrid       cut at headings, then by size inside long sections
     semantic     cut where the topic changes
     contextual   cut with another strategy, then add a model-written sentence
-                 saying what each piece is about (paid: one call per chunk)
+                 saying what each piece is about
 """
 from typing import Callable, Dict
 

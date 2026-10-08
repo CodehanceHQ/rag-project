@@ -93,7 +93,7 @@ class ContextualTests(unittest.TestCase):
 
         with patch.object(settings, "openrouter_api_key", "test-key"), \
              patch("app.chunking.contextual.httpx.post", return_value=self.reply(text or self.SENTENCE)) as post:
-            found = ContextualChunker(**kwargs).chunk(load("baking_instruction_rev_D.pdf"))
+            found = ContextualChunker(provider="openrouter", **kwargs).chunk(load("baking_instruction_rev_D.pdf"))
         return found, post
 
     def test_every_chunk_starts_with_its_sentence_and_one_call_is_made_per_chunk(self):
@@ -123,14 +123,40 @@ class ContextualTests(unittest.TestCase):
         found, _ = self.chunks(base="hybrid")
         self.assertTrue(all("baking_instruction_rev_D.pdf › " in chunk.text for chunk in found))
 
-    def test_it_refuses_to_run_without_a_key(self):
+    def test_the_hosted_provider_refuses_to_run_without_a_key(self):
         from app.chunking.contextual import ContextualChunker
         from app.config import settings
 
         with patch.object(settings, "openrouter_api_key", ""):
             with self.assertRaises(ValueError) as raised:
-                ContextualChunker().chunk(load("baking_instruction_rev_D.pdf"))
+                ContextualChunker(provider="openrouter").chunk(load("baking_instruction_rev_D.pdf"))
         self.assertIn("OPENROUTER_API_KEY", str(raised.exception))
+
+    def test_the_local_provider_needs_no_key_and_makes_no_network_call(self):
+        from app.chunking.contextual import ContextualChunker, LocalWriter
+        from app.config import settings
+
+        with patch.object(settings, "openrouter_api_key", ""), \
+             patch.object(LocalWriter, "write", return_value=self.SENTENCE) as write, \
+             patch("app.chunking.contextual.httpx.post") as post:
+            found = ContextualChunker(provider="local").chunk(load("baking_instruction_rev_D.pdf"))
+        self.assertEqual(write.call_count, len(found))
+        post.assert_not_called()
+        self.assertTrue(all(chunk.text.startswith(self.SENTENCE) for chunk in found))
+
+    def test_reasoning_a_model_writes_before_its_sentence_is_dropped(self):
+        from app.chunking.contextual import ContextualChunker, LocalWriter
+
+        with patch.object(LocalWriter, "write", return_value="<think>Let me see.</think> " + self.SENTENCE):
+            found = ContextualChunker(provider="local").chunk(load("baking_instruction_rev_D.pdf"))
+        self.assertTrue(all(chunk.text.startswith(self.SENTENCE) for chunk in found))
+
+    def test_an_unknown_provider_names_the_choices(self):
+        from app.chunking.contextual import ContextualChunker
+
+        with self.assertRaises(ValueError) as raised:
+            ContextualChunker(provider="cloud")
+        self.assertIn("local", str(raised.exception))
 
 
 class SemanticSentenceTests(unittest.TestCase):

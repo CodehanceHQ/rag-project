@@ -37,10 +37,13 @@ class Settings(BaseSettings):
     chunk_tokens: int = 0
     chunk_overlap_tokens: int = 40
     semantic_breakpoint_percentile: float = 90.0
-    # Contextual chunking: which strategy does the cutting, which model writes
-    # the sentence (blank = OPENROUTER_MODEL), and how many tokens it may use.
+    # Contextual chunking: which strategy does the cutting, where the model
+    # that writes the sentence runs ("local" or "openrouter"), which model it
+    # is in each case, and how many tokens the sentence may use.
     contextual_base_strategy: str = "recursive"
-    contextual_model: str = ""
+    contextual_provider: str = "local"
+    contextual_local_model: str = "HuggingFaceTB/SmolLM3-3B"
+    contextual_model: str = ""          # hosted; blank = OPENROUTER_MODEL
     contextual_context_tokens: int = 60
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
