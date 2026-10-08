@@ -3,38 +3,36 @@
 negatives.ballast_vocabulary: ballast varies WORDING, never VOCABULARY.
 
 The co-occurrence trap is designed out structurally rather than checked for.
-Every ballast document has a SCOPE: it is either plant-scoped (may name
-plants, never names a part) or part-scoped (may name parts, never names a
-plant). No ballast document can therefore put BV-12 next to Bamberg, which is
-the single invention that would collapse mh-01 and take pages 03, 06 and 07
-with it.
+Every ballast document has a SCOPE: it is either site-scoped (may name sites,
+never names a product) or item-scoped (names generic items, never a site or a
+product). No ballast document can therefore put SD-12 next to High Street,
+which is the single invention that would collapse mh-01.
 """
 import pathlib, random
 
 SRC = pathlib.Path(__file__).resolve().parents[1] / "source"
-PLANTS = ["Plant X (Bamberg)", "Plant Y (Kassel)", "Plant Z (Ingolstadt)"]
-SUPPLIERS = ["Alpha Dichtungen GmbH", "Beta Valve Co.", "Gamma Sealing Systems"]
-PARTS = ["BV-12", "BV-13"]
-GENERIC = ["valve body", "housing", "cover plate", "spindle", "seat ring", "retainer",
-           "spacer", "gland", "bush", "washer set", "fastener kit", "spring", "guide",
-           "plug", "bracket", "dowel", "shim", "clip", "insert", "bearing"]
+SITES = ["High Street bakery", "Riverside bakery", "Station Road bakery"]
+GENERIC = ["baking tray", "bread crate", "paper bag", "cooling rack", "dough scraper",
+           "proving basket", "bench brush", "oven glove", "bread knife", "label roll",
+           "cleaning cloth", "hand soap", "apron", "hair net", "flour scoop",
+           "measuring jug", "mixing bowl", "till roll", "price ticket", "delivery cage"]
 
 KINDS = [
-    ("Calibration Log",          "CAL", "plant", ["1. Instruments", "2. Calibration record", "3. Overdue items"]),
-    ("Goods Receipt Register",   "GRR", "part",  ["1. Receipts", "2. Inspection status", "3. Discrepancies"]),
-    ("Shift Handover Record",    "SHO", "plant", ["1. Shift summary", "2. Carried items", "3. Staffing"]),
-    ("Maintenance Schedule",     "MTS", "plant", ["1. Planned tasks", "2. Completion record", "3. Deferred tasks"]),
-    ("Training Record",          "TRN", "plant", ["1. Competences", "2. Attendance", "3. Renewals due"]),
-    ("Packaging Specification",  "PKG", "part",  ["1. Pack configuration", "2. Materials", "3. Labelling"]),
-    ("Shipping Manifest",        "SHP", "part",  ["1. Consignment", "2. Line items", "3. Documentation"]),
-    ("Internal Audit Checklist", "AUD", "plant", ["1. Scope", "2. Checklist", "3. Findings"]),
+    ("Fridge Temperature Log",   "FTL", "site", ["1. Units", "2. Temperature record", "3. Out-of-range readings"]),
+    ("Goods Received Register",  "GRR", "item", ["1. Receipts", "2. Inspection status", "3. Discrepancies"]),
+    ("Shift Handover Record",    "SHO", "site", ["1. Shift summary", "2. Carried items", "3. Staffing"]),
+    ("Oven Maintenance Schedule","OMS", "site", ["1. Planned tasks", "2. Completion record", "3. Deferred tasks"]),
+    ("Training Record",          "TRN", "site", ["1. Competences", "2. Attendance", "3. Renewals due"]),
+    ("Packaging Specification",  "PKG", "item", ["1. Pack configuration", "2. Materials", "3. Labelling"]),
+    ("Delivery Manifest",        "DLV", "item", ["1. Consignment", "2. Line items", "3. Documentation"]),
+    ("Hygiene Audit Checklist",  "HYG", "site", ["1. Scope", "2. Checklist", "3. Findings"]),
 ]
 
 FRAMING = [
     "This record is maintained by the issuing function and reissued at the interval stated in the controlling procedure.",
-    "Entries are recorded as observed at the time of the activity and are not amended retrospectively.",
+    "Entries are recorded as observed at the time of the activity and are not amended afterwards.",
     "Figures are stated as booked and cover the period shown above only.",
-    "Where an entry is incomplete it is carried to the following period and shown again.",
+    "Where an entry is incomplete it is carried to the following period and shown there.",
     "Queries on an entry should be directed to the issuing function, quoting the reference above.",
     "This document does not confer authority and does not record approval of any change.",
 ]
@@ -43,7 +41,7 @@ FRAMING = [
 def rows(kind, scope, rnd, n):
     out = []
     for i in range(n):
-        subject = rnd.choice(PLANTS) if scope == "plant" else rnd.choice(GENERIC)
+        subject = rnd.choice(SITES) if scope == "site" else rnd.choice(GENERIC)
         out.append((f"{i+1:04d}",
                     f"{kind}-{rnd.randint(1000,9999)}",
                     subject,
@@ -76,7 +74,7 @@ header: {title}
 header_right: Series {seq}
 doc_id: {doc_id}
 revision: Issue {rnd.randint(1,9)}
-author_function: {rnd.choice(['Manufacturing Operations','Quality Management System','Facilities','Procurement'])}
+author_function: {rnd.choice(['Bakery Operations','Food Safety','Facilities','Purchasing'])}
 date: 2025-{rnd.randint(1,12):02d}
 tier: ballast
 ---

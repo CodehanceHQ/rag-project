@@ -1,8 +1,8 @@
 {
   "file": "facilities_site_services.pdf",
-  "doc_id": "FAC-HB-07",
-  "date": "2025-09",
-  "pages_total": 3,
+  "doc_id": "FSG-05",
+  "date": "2025-05",
+  "pages_total": 4,
   "sections": [
     {
       "section": "1. Site services",
@@ -11,16 +11,22 @@
       "pages": "1"
     },
     {
-      "section": "2. Bamberg site quality overview",
+      "section": "2. High Street site quality overview",
       "page_start": 2,
       "page_end": 2,
       "pages": "2"
     },
     {
-      "section": "3. Contractor access",
+      "section": "3. Waste and recycling",
       "page_start": 3,
       "page_end": 3,
       "pages": "3"
+    },
+    {
+      "section": "4. Contacts",
+      "page_start": 4,
+      "page_end": 4,
+      "pages": "4"
     }
   ]
 }

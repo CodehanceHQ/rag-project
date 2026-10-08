@@ -1,0 +1,26 @@
+{
+  "file": "obsolete_product_catalogue_pre2020.pdf",
+  "doc_id": "CAT-2019",
+  "date": "2019-06",
+  "pages_total": 3,
+  "sections": [
+    {
+      "section": "1. Breads",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Pastries and cakes",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    },
+    {
+      "section": "3. Ordering",
+      "page_start": 3,
+      "page_end": 3,
+      "pages": "3"
+    }
+  ]
+}

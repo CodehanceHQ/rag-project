@@ -1,0 +1,38 @@
+{
+  "file": "product_specifications_2024.pdf",
+  "doc_id": "PSB-E4",
+  "date": "2024-01",
+  "pages_total": 41,
+  "sections": [
+    {
+      "section": "1. Introduction and revision history",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Classic Sourdough (SD-12)",
+      "page_start": 2,
+      "page_end": 17,
+      "pages": "2-17"
+    },
+    {
+      "section": "3. Country Sourdough (SD-13)",
+      "page_start": 18,
+      "page_end": 32,
+      "pages": "18-32"
+    },
+    {
+      "section": "4. Common ingredients",
+      "page_start": 33,
+      "page_end": 40,
+      "pages": "33-40"
+    },
+    {
+      "section": "5. Approved supplier index",
+      "page_start": 41,
+      "page_end": 41,
+      "pages": "41"
+    }
+  ]
+}

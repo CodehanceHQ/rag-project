@@ -26,37 +26,38 @@ class RegistryTests(unittest.TestCase):
         self.assertIn("recursive", str(raised.exception))
 
 
-class WorkInstructionTests(unittest.TestCase):
-    """work_instruction_rev_D.pdf states the torque in section 4, a few
-    sentences after naming the bolt it applies to."""
+class BakingInstructionTests(unittest.TestCase):
+    """baking_instruction_rev_D.pdf names the deck oven at the start of
+    section 4 and gives the temperature a few paragraphs later: "Set it to
+    230 °C"."""
 
     @classmethod
     def setUpClass(cls):
-        cls.source = load("work_instruction_rev_D.pdf")
+        cls.source = load("baking_instruction_rev_D.pdf")
 
     def test_sections_are_found_from_the_headings(self):
         titles = [section.title for section in detect_sections(self.source)]
-        self.assertEqual(titles[-5:], ["1. Scope", "2. Tooling", "3. Sub-assembly",
-                                       "4. Housing assembly", "5. Inspection"])
+        self.assertEqual(titles[-5:], ["1. Scope", "2. Equipment", "3. Shaping and proving",
+                                       "4. Baking", "5. Inspection"])
 
-    def test_recursive_separates_the_torque_from_its_bolt(self):
-        torque = [c for c in get_chunker("recursive").chunk(self.source) if "40 Nm" in c.text]
-        self.assertTrue(torque)
-        self.assertTrue(all("M8" not in c.text for c in torque))
+    def test_recursive_separates_the_temperature_from_its_oven(self):
+        chunks = [c for c in get_chunker("recursive").chunk(self.source) if "230 °C" in c.text]
+        self.assertTrue(chunks)
+        self.assertTrue(all("deck oven" not in c.text.lower() for c in chunks))
 
     def test_structural_keeps_the_section_whole(self):
-        torque = [c for c in get_chunker("structural").chunk(self.source) if "40 Nm" in c.text]
-        self.assertEqual(len(torque), 1)
-        self.assertIn("M8", torque[0].text)
-        self.assertEqual(torque[0].section, "4. Housing assembly")
+        chunks = [c for c in get_chunker("structural").chunk(self.source) if "230 °C" in c.text]
+        self.assertEqual(len(chunks), 1)
+        self.assertIn("deck oven", chunks[0].text)
+        self.assertEqual(chunks[0].section, "4. Baking")
 
     def test_hybrid_pieces_carry_their_heading_and_fit_the_size_limit(self):
         chunks = get_chunker("hybrid").chunk(self.source)
         for chunk in chunks:
-            self.assertTrue(chunk.text.startswith("work_instruction_rev_D.pdf"))
+            self.assertTrue(chunk.text.startswith("baking_instruction_rev_D.pdf"))
             self.assertLessEqual(count_tokens(chunk.text), token_budget())
-        torque = [c for c in chunks if "40 Nm" in c.text]
-        self.assertTrue(all("4. Housing assembly" in c.text for c in torque))
+        temperature = [c for c in chunks if "230 °C" in c.text]
+        self.assertTrue(all("4. Baking" in c.text for c in temperature))
 
 
 class TokenLimitTests(unittest.TestCase):
@@ -82,12 +83,12 @@ class SemanticSentenceTests(unittest.TestCase):
         return [s for s, _, _ in get_chunker("semantic")._sentences(source)]
 
     def test_a_heading_number_does_not_end_a_sentence(self):
-        found = self.sentences("Class B applies.\n\n3. Fastener torque bands\n\nTorque bands state the range.")
-        self.assertEqual(found, ["Class B applies.", "3. Fastener torque bands", "Torque bands state the range."])
+        found = self.sentences("Class B applies.\n\n3. Oven temperature bands\n\nBands state the range.")
+        self.assertEqual(found, ["Class B applies.", "3. Oven temperature bands", "Bands state the range."])
 
     def test_table_rows_keep_their_line_breaks(self):
-        found = self.sentences("Feature   Class A   Class B\nPort face   0.02   0.04\nBore land   0.02   0.03")
-        self.assertEqual(found, ["Feature Class A Class B\nPort face 0.02 0.04\nBore land 0.02 0.03"])
+        found = self.sentences("Feature   Class A   Class B\nBaguette   5   10\nRye loaf   10   20")
+        self.assertEqual(found, ["Feature Class A Class B\nBaguette 5 10\nRye loaf 10 20"])
 
 
 if __name__ == "__main__":

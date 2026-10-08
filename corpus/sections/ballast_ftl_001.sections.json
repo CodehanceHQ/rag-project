@@ -1,0 +1,26 @@
+{
+  "file": "ballast_ftl_001.pdf",
+  "doc_id": "FTL-2025-001",
+  "date": "2025-01",
+  "pages_total": 31,
+  "sections": [
+    {
+      "section": "1. Units",
+      "page_start": 1,
+      "page_end": 11,
+      "pages": "1-11"
+    },
+    {
+      "section": "2. Temperature record",
+      "page_start": 12,
+      "page_end": 21,
+      "pages": "12-21"
+    },
+    {
+      "section": "3. Out-of-range readings",
+      "page_start": 22,
+      "page_end": 31,
+      "pages": "22-31"
+    }
+  ]
+}

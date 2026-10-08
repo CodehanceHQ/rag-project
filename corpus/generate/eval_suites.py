@@ -1,9 +1,7 @@
 """Rebuild evaluations/*.json from the manifest, against the new corpus.
 
-The fork shipped these suites pointing at sample-documents (HR policies). That
-corpus is gone; these are the same schema, same harness, pointed at the 25
-questions in corpus/manifest.yaml. backend/app/ is untouched — the two
-filenames in app/evaluation.py:SUITES are preserved deliberately.
+The two filenames are the ones app/evaluation.py:SUITES reads, so the UI's
+Run evaluation button and POST /evaluations/run pick them up unchanged.
 
 Path A is EXPECTED to fail most of these. That is the measurement: the
 single_hop rows are test_baseline_succeeds, the multi_hop and long_distance
@@ -32,13 +30,13 @@ def expand(sources):
     out = []
     for s in sources:
         s = str(s)
-        if ".." in s:                                   # rework_2025_01.pdf .. _12.pdf
+        if ".." in s:                                   # waste_2025_01.pdf .. _12.pdf
             stem = re.match(r"([\w\-]+?)_?\d+\.pdf", s.split("..")[0].strip())
             if stem:
                 out += [f for f in have if f.startswith(stem.group(1))]
             continue
-        if "every" in s or "*" in s:                    # "every CR-*.pdf in the corpus"
-            out += [f for f in have if f.startswith("CR-")]
+        if "every" in s or "*" in s:                    # "every RC-*.pdf in the corpus"
+            out += [f for f in have if f.startswith("RC-")]
             continue
         out += [f for f in re.findall(r"[\w\-]+\.pdf", s) if f in have]
     return sorted(set(out))

@@ -1,17 +1,17 @@
 {
   "file": "quality_batch_4471.pdf",
-  "doc_id": "SQR-4471",
-  "date": "2024-08",
+  "doc_id": "QR-4471",
+  "date": "2025-01",
   "pages_total": 3,
   "sections": [
     {
-      "section": "1. Batch identification",
+      "section": "1. Batch details",
       "page_start": 1,
       "page_end": 1,
       "pages": "1"
     },
     {
-      "section": "2. Test results",
+      "section": "2. Finding",
       "page_start": 2,
       "page_end": 2,
       "pages": "2"

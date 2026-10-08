@@ -19,7 +19,7 @@ The first run downloads the MongoDB image and the embedding model, so it takes a
 
 ### Load the sample corpus
 
-The application starts empty. You can drop your own files into the UI, or load the 100-document engineering corpus that ships with the project. With the system running, in a second terminal:
+The application starts empty. You can drop your own files into the UI, or load the 100-document sample corpus that ships with the project: the paperwork of a fictional bakery company. With the system running, in a second terminal:
 
 ```bash
 .venv/bin/python corpus/generate/ingest.py
@@ -141,7 +141,7 @@ That is fine when the answer sits in one passage. It breaks down in four situati
 | --- | --- |
 | Multi-hop | You need fact A before you know to look for fact B |
 | Long-distance evidence | The answer is spread across documents, and no single chunk resembles the question |
-| Chunks that lost their context | "Set it to 40 Nm" never says what *it* is |
+| Chunks that lost their context | "Set it to 230 °C" never says what *it* is |
 | Aggregation | "What is the trend across these twelve reports?" needs many reads, not a top five |
 
 The sample corpus is built to trigger each of these.

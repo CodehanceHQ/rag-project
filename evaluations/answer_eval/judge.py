@@ -1,7 +1,7 @@
 """Model-as-judge, for semantic coverage only.
 
-Used solely where a string match cannot work — ld-01's answer is "batch
-rejection, rig reallocation, seal material change and the revalidation it
+Used solely where a string match cannot work — ld-01's answer is "a rejected
+batch, an oven reallocated, the flour change and the allergen retest it
 forced", and deciding whether a paragraph covers four causes needs a reader.
 
 A DIFFERENT FAMILY ON PURPOSE. Path A generates on gpt-4.1-mini, and judges

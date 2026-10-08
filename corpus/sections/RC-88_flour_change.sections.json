@@ -1,0 +1,26 @@
+{
+  "file": "RC-88_flour_change.pdf",
+  "doc_id": "RC-88",
+  "date": "2024-09",
+  "pages_total": 3,
+  "sections": [
+    {
+      "section": "1. Change description",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Affected products",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    },
+    {
+      "section": "3. Procedure reference",
+      "page_start": 3,
+      "page_end": 3,
+      "pages": "3"
+    }
+  ]
+}

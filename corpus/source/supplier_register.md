@@ -1,106 +1,53 @@
 ---
 file: supplier_register.pdf
-title: Approved Supplier Register
-doc_id: REG-SUP-11
-revision: Revision 11
-author_function: Procurement
-date: 2025-07
+title: Supplier Register
+doc_id: SUPR-12
+revision: Issue 12
+author_function: Purchasing
+date: 2025-04
 tier: authored
 ---
 
-## 1. Approved supplier index
+## 1. Purpose
 
-This register records suppliers approved to supply production material, the
-categories each is approved for, and the sites at which each approval is held.
-It is maintained by Procurement and reissued following any approval change.
+The register holds one record for each approved supplier. It gives the
+supplier code used on orders and in other registers, the company name and
+where the company is based.
 
-| Code | Supplier | Category | Approval held |
+Approval of a supplier to deliver to a particular site is recorded in the site
+register, by supplier code, and is not recorded here.
+
+## 2. Supplier records
+
+| Code | Company | Based in | Supplies |
 | --- | --- | --- | --- |
-| SUP-0142 | Alpha Dichtungen GmbH | Elastomer seals and gaskets | Current |
-| SUP-0311 | Beta Valve Co. | Valve bodies and machined components | Current |
-| SUP-0407 | Gamma Sealing Systems | Sealing systems and kits | Current |
+| SUP-0207 | Alder Mill | Ashby | Flour and milled grain |
+| SUP-0311 | Birch Lane Mill | Thornbury | Flour and milled grain |
+| SUP-0407 | Cedar Valley Mill | Ludwell | Flour and milled grain |
 
-Approval is granted per site. The sites at which each approval is held are
-recorded in the individual supplier records that follow, and in the site
-register maintained by Manufacturing Operations.
+Alder Mill is based in Ashby and has supplied the company since 2016. It mills
+on two lines and delivers in sacks and in bulk.
 
-## 2. Alpha Dichtungen GmbH
+Birch Lane Mill is based in Thornbury and has supplied the company since 2019.
+It delivers in sacks only.
 
-Alpha Dichtungen GmbH supplies elastomer seals and gaskets. The supplier has
-held category approval since 2019 and has been reassessed at each scheduled
-audit interval without adverse finding.
+Cedar Valley Mill is based in Ludwell and has supplied the company since 2021.
+It specialises in wholemeal and country-style flours.
 
-| Attribute | Entry |
-| --- | --- |
-| Supplier | Alpha Dichtungen GmbH |
-| Supplier code | SUP-0142 |
-| Registered office | Fürth, Bavaria |
-| Category | Elastomer seals and gaskets |
-| Approval since | 2019 |
-| Sites approved | Plant Y, Plant Z |
+## 3. Delivery areas
 
-The supplier operates from a single production facility and does not
-subcontract moulding. Material certificates are supplied against each
-delivery and are retained by incoming inspection at the receiving site.
+Each supplier states the area it is able to deliver to. A stated delivery area
+is not an approval to deliver to any site within it.
 
-Approval at a further site would require an audit against that site's scope
-of work. No such audit is currently scheduled.
+Alder Mill delivers across the town centre, and its stated delivery area
+includes the High Street. Its vehicles pass the High Street bakery on the
+morning round.
 
-## 3. Beta Valve Co.
+Birch Lane Mill delivers within twenty miles of Thornbury.
 
-Beta Valve Co. supplies valve bodies and machined components. The supplier
-holds approval at two sites and is the larger of the two approved sources by
-delivered volume.
+Cedar Valley Mill delivers on Tuesdays and Fridays only.
 
-| Attribute | Entry |
-| --- | --- |
-| Supplier | Beta Valve Co. |
-| Supplier code | SUP-0311 |
-| Registered office | Solingen, North Rhine-Westphalia |
-| Category | Valve bodies and machined components |
-| Approval since | 2016 |
-| Sites approved | Plant X, Plant Z |
+## 4. Review
 
-The supplier operates two facilities and holds machining and finishing
-capability in house. Delivery performance is reviewed quarterly and has
-remained within the agreed tolerance across the current review period.
-
-## 4. Gamma Sealing Systems
-
-Gamma Sealing Systems supplies assembled sealing systems and service kits.
-
-| Attribute | Entry |
-| --- | --- |
-| Supplier | Gamma Sealing Systems |
-| Supplier code | SUP-0407 |
-| Registered office | Wuppertal, North Rhine-Westphalia |
-| Category | Sealing systems and kits |
-| Approval since | 2021 |
-| Sites approved | Plant X, Plant Y |
-
-The supplier is the more recent addition to the approved list and was brought
-on to provide a second source at Plant X following the category review.
-Site codes are used throughout; the site register resolves them to locations.
-
-## 5. Regional supply notes
-
-Supply into the Bamberg region is served from three approved sources across
-the seal and valve categories, with Alpha Dichtungen GmbH the principal
-regional source by delivered volume across the group as a whole. Regional
-logistics are handled through the Nuremberg consolidation point, which
-receives from Alpha Dichtungen GmbH, Beta Valve Co. and Gamma Sealing Systems
-and breaks bulk for onward delivery.
-
-Consolidated regional volume for the current period is set out below. These
-figures describe material moving through the region and are not a statement
-of site approval, which is recorded per supplier in the sections above and in
-the site register.
-
-| Source | Regional volume share | Consolidation point |
-| --- | --- | --- |
-| Alpha Dichtungen GmbH | 46% | Nuremberg |
-| Beta Valve Co. | 34% | Nuremberg |
-| Gamma Sealing Systems | 20% | Nuremberg |
-
-Procurement reviews regional supply arrangements annually. The current
-arrangement was confirmed at the last review with no change.
+Each supplier record is reviewed once a year. A supplier that has not
+delivered for twelve months is marked dormant and removed at the next review.

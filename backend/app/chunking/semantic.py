@@ -16,7 +16,7 @@ from .base import Chunk, SourceDocument
 from .recursive import RecursiveChunker
 
 # A sentence ends at ., ! or ? followed by space, or at a blank line. A bare
-# number and a full stop ("3. Fastener torque bands") is a heading or list
+# number and a full stop ("3. Oven temperature bands") is a heading or list
 # number, not the end of a sentence. The separator is captured so the pieces
 # can be put back together the way they were laid out.
 SENTENCE_END = re.compile(r"((?<=[.!?])(?<!\s\d\.)(?<!\s\d\d\.)\s+|\n{2,})")

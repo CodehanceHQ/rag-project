@@ -16,13 +16,13 @@ def scanned_cert():
     """Image-only. No text layer at all — this is the point, and it is why
     backend/app/extractors.py:_extract_pdf currently RAISES on it."""
     lines = [
-        ("INSPECTION CERTIFICATE", 34), ("Certificate no.  IC-2025-0884", 20),
-        ("", 10), ("Issued by       Incoming Inspection", 18),
+        ("DELIVERY INSPECTION CERTIFICATE", 30), ("Certificate no.  IC-2025-0884", 20),
+        ("", 10), ("Issued by       Goods Inwards", 18),
         ("Date            2025-04-18", 18), ("Delivery ref.   DN-2025-0907", 18),
         ("", 10), ("CHARACTERISTIC            SPECIFIED      MEASURED     RESULT", 16),
-        ("Dimensional, bore         within drawing  conforming   PASS", 16),
-        ("Dimensional, face         within drawing  conforming   PASS", 16),
-        ("Surface finish            within drawing  conforming   PASS", 16),
+        ("Sack weight               within order    conforming   PASS", 16),
+        ("Sack seal                 intact          conforming   PASS", 16),
+        ("Moisture                  within limit    conforming   PASS", 16),
         ("Visual, external          free of damage  conforming   PASS", 16),
         ("Identification            legible         conforming   PASS", 16),
         ("", 10), ("Sample size     30", 18), ("Accepted        30", 18),
@@ -56,13 +56,13 @@ def scanned_cert():
     return path, 4
 
 
-def exploded_diagram():
+def floor_layout():
     """Callouts positioned around a drawing. The numbers mean nothing without
     the picture, which is the parsing challenge."""
-    path = OUT/"assembly_exploded_diagram.pdf"
+    path = OUT/"bakery_floor_layout_diagram.pdf"
     c = canvasmod.Canvas(str(path), pagesize=A4)
     W, H = A4
-    for page, title in enumerate(["Sheet 1 — Exploded view", "Sheet 2 — Callout index"], 1):
+    for page, title in enumerate(["Sheet 1 — Floor layout", "Sheet 2 — Callout index"], 1):
         c.setFont("Helvetica-Bold", 11); c.drawString(20*mm, H-20*mm, title)
         c.setLineWidth(0.8)
         if page == 1:
@@ -85,7 +85,7 @@ def exploded_diagram():
 
 
 if __name__ == "__main__":
-    for fn, pages in (scanned_cert(), exploded_diagram()):
+    for fn, pages in (scanned_cert(), floor_layout()):
         (SECT/f"{fn.stem}.sections.json").write_text(json.dumps(
             {"file": fn.name, "pages_total": pages, "sections": [],
              "note": "PDF-native, no authored sections"}, indent=2))

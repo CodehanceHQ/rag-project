@@ -1,0 +1,26 @@
+{
+  "file": "customer_feedback_2024_h2.pdf",
+  "doc_id": "CFS-2024-H2",
+  "date": "2025-01",
+  "pages_total": 3,
+  "sections": [
+    {
+      "section": "1. Summary",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Gummy centre",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    },
+    {
+      "section": "3. Other subjects",
+      "page_start": 3,
+      "page_end": 3,
+      "pages": "3"
+    }
+  ]
+}

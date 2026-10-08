@@ -12,7 +12,7 @@ import httpx
 
 from .config import settings
 
-SYSTEM_PROMPT = """You answer questions about an engineering document corpus.
+SYSTEM_PROMPT = """You answer questions about a document corpus.
 
 Answer using ONLY the numbered passages provided. Do not use outside
 knowledge and do not infer facts the passages do not state.

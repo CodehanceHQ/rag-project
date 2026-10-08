@@ -1,0 +1,38 @@
+{
+  "file": "baking_instruction_rev_D.pdf",
+  "doc_id": "BI-SD12",
+  "date": "2025-06",
+  "pages_total": 5,
+  "sections": [
+    {
+      "section": "1. Scope",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Equipment",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    },
+    {
+      "section": "3. Shaping and proving",
+      "page_start": 3,
+      "page_end": 3,
+      "pages": "3"
+    },
+    {
+      "section": "4. Baking",
+      "page_start": 4,
+      "page_end": 4,
+      "pages": "4"
+    },
+    {
+      "section": "5. Inspection",
+      "page_start": 5,
+      "page_end": 5,
+      "pages": "5"
+    }
+  ]
+}

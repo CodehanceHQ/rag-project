@@ -24,7 +24,8 @@ def check(md_path, spec_entry, manifest):
     hay = body.lower()
     # verbatim strings are matched against whitespace-normalised, case-folded
     # text: PDF extraction rewraps lines, so a raw substring match is wrong.
-    flat = re.sub(r"[\s*`]+", " ", body).lower()
+    flat = re.sub(r"[\s*`]+", " ", body.replace("|", " | ")).lower()
+    flat = re.sub(r"\s+", " ", flat)
     fails, notes = [], []
 
     for h in spec_entry.get("holds", []):
@@ -35,26 +36,25 @@ def check(md_path, spec_entry, manifest):
 
     for bad in spec_entry.get("must_not_hold", []):
         if not isinstance(bad, str): continue
-        if bad.startswith("any ") or "reference to" in bad:
-            notes.append(f"manual check: must_not_hold {bad!r}")
-            continue
-        if re.search(rf"\b{re.escape(bad.lower())}\b", hay):
+        if re.search(rf"(?<!\w){re.escape(bad.lower())}(?!\w)", hay):
             fails.append(f"FORBIDDEN {bad!r} present")
 
     # negatives that are greppable per-document
     negs = manifest["negatives"]
-    if "fkm70_undiscoverable" in spec_entry.get("negatives", []):
-        if "FKM-70" in title:
-            fails.append("FKM-70 in document TITLE (fkm70_undiscoverable)")
-        for h in headings(body):
-            if "FKM-70" in h:
-                fails.append(f"FKM-70 in SECTION HEADING {h!r} (fkm70_undiscoverable)")
-        if "FKM-70" in str(spec_entry["file"]):
-            fails.append("FKM-70 in FILENAME (fkm70_undiscoverable)")
+    # flour_undiscoverable applies to every document: the new flour's name
+    # may appear in body text, never in a title, a heading or a filename.
+    flour = "Heritage Stoneground"
+    if flour in title:
+        fails.append(f"{flour} in document TITLE (flour_undiscoverable)")
+    for h in headings(body):
+        if flour in h:
+            fails.append(f"{flour} in SECTION HEADING {h!r} (flour_undiscoverable)")
+    if flour.lower().replace(" ", "_") in str(spec_entry["file"]).lower():
+        fails.append(f"{flour} in FILENAME (flour_undiscoverable)")
 
-    if "authority_split" in spec_entry.get("negatives", []) and spec_entry["file"].startswith("CR-"):
+    if "authority_split" in spec_entry.get("negatives", []) and spec_entry["file"].startswith("RC-"):
         if re.search(r"\blevel\s*[123]\b", hay):
-            fails.append("approval LEVEL stated in a change request (authority_split)")
+            fails.append("approval LEVEL stated in a recipe change (authority_split)")
 
     return fails, notes
 

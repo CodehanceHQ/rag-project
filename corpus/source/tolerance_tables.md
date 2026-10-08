@@ -1,90 +1,87 @@
 ---
 file: tolerance_tables.pdf
-title: Engineering Tolerance Tables
-doc_id: ENG-TOL-09
+title: Production Tolerance Tables
+doc_id: PTT-09
 revision: Revision 9
-author_function: Engineering
-date: 2025-04
+author_function: Quality
+date: 2025-05
 tier: authored
 ---
 
-## 1. General tolerances
+## 1. Ingredient weighing
 
-General tolerances apply where no tolerance is stated against a dimension on
-the drawing. Where a tolerance is stated on the drawing, the drawing governs.
+Tolerances for weighing ingredients are stated by the size of the weighing and
+by tolerance grade. Values are in grams. The grade to use is stated on the
+recipe card.
 
-| Nominal range | Fine | Medium | Coarse |
+| Nominal weight | Fine | Medium | Coarse |
 | --- | --- | --- | --- |
-| 0.5 to 3 | 0.05 | 0.10 | 0.20 |
-| over 3 to 6 | 0.05 | 0.10 | 0.30 |
-| over 6 to 30 | 0.10 | 0.20 | 0.50 |
-| over 30 to 120 | 0.15 | 0.30 | 0.80 |
-| over 120 to 400 | 0.20 | 0.50 | 1.20 |
+| Up to 100 g | 1 | 2 | 5 |
+| Over 100 g to 1 kg | 5 | 10 | 20 |
+| Over 1 kg to 10 kg | 20 | 50 | 100 |
+| Over 10 kg | 50 | 100 | 250 |
 
-Tolerance class is stated in the drawing title block. Where no class is
-stated, medium applies.
+Where a recipe card states a tolerance of its own, the recipe card governs.
 
-## 2. Machined faces
+## 2. Baked weights and sizes
 
-Form tolerances for machined faces are stated by feature and by tolerance
-class. Values are in millimetres and apply over the full extent of the feature
-unless a partial extent is stated on the drawing.
+Tolerances for finished products are stated by feature and by tolerance class.
+Weights are in grams and sizes are in millimetres. Each value is the amount
+the feature may fall below or rise above its nominal figure.
 
 | Feature | Class A | Class B | Class C |
 | --- | --- | --- | --- |
-| Valve body, port face | 0.02 | 0.04 | 0.08 |
-| Valve body, mounting pad | 0.03 | 0.06 | 0.12 |
-| Valve body, bore land | 0.02 | 0.03 | 0.06 |
-| Valve body, seat register | 0.01 | 0.02 | 0.05 |
-| Valve body, end face | 0.04 | 0.08 | 0.15 |
-| Cover plate, outer face | 0.05 | 0.10 | 0.20 |
-| Cover plate, inner face | 0.03 | 0.06 | 0.12 |
-| Cover plate, spigot | 0.02 | 0.04 | 0.08 |
-| Manifold block, top face | 0.04 | 0.08 | 0.16 |
-| Manifold block, side face | 0.06 | 0.12 | 0.24 |
-| Manifold block, port register | 0.02 | 0.04 | 0.08 |
-| Adapter, flange face | 0.03 | 0.06 | 0.12 |
-| Adapter, spigot register | 0.02 | 0.04 | 0.08 |
-| Retainer, seating face | 0.02 | 0.05 | 0.10 |
-| Retainer, outer diameter | 0.05 | 0.10 | 0.20 |
-| Spacer, both faces | 0.04 | 0.08 | 0.16 |
-| Gland, bore | 0.02 | 0.04 | 0.08 |
-| Gland, face | 0.03 | 0.06 | 0.12 |
-| BV-12 housing, flange face | 0.03 | 0.06 | 0.12 |
-| BV-12 housing face, flatness | 0.02 | 0.05 | 0.10 |
-| BV-13 housing face, flatness | 0.03 | 0.07 | 0.14 |
-| BV-12 housing, bolt circle | 0.05 | 0.10 | 0.20 |
+| Baguette, baked weight | 5 | 10 | 15 |
+| Baguette, length | 5 | 10 | 20 |
+| Farmhouse white, baked weight | 10 | 20 | 30 |
+| Farmhouse white, height | 3 | 6 | 10 |
+| Granary bloomer, baked weight | 10 | 20 | 30 |
+| Granary bloomer, length | 5 | 10 | 15 |
+| French stick, baked weight | 5 | 10 | 15 |
+| French stick, length | 10 | 15 | 25 |
+| Butter croissant, baked weight | 2 | 4 | 6 |
+| Butter croissant, width | 3 | 5 | 8 |
+| SD-13 baked weight | 15 | 25 | 35 |
+| SD-13 loaf, height | 4 | 8 | 12 |
+| SD-12 loaf, score depth | 2 | 4 | 6 |
+| SD-12 baked weight | 10 | 20 | 30 |
+| SD-12 loaf, height | 4 | 8 | 12 |
+| Fruit scone, baked weight | 3 | 5 | 8 |
+| Fruit scone, height | 2 | 4 | 6 |
+| Eccles cake, baked weight | 3 | 5 | 8 |
+| Lemon drizzle, baked weight | 10 | 15 | 25 |
+| Dinner roll, baked weight | 2 | 4 | 6 |
+| Dinner roll, width | 2 | 4 | 6 |
+| Rye loaf, baked weight | 10 | 20 | 30 |
+| Rye loaf, height | 3 | 6 | 10 |
+| Seeded batch loaf, baked weight | 10 | 20 | 30 |
+| Seeded batch loaf, height | 3 | 6 | 10 |
+| Cheese straw, baked weight | 1 | 2 | 3 |
+| Cheese straw, length | 5 | 8 | 12 |
+| Mince pie, baked weight | 2 | 4 | 6 |
+| Almond croissant, baked weight | 3 | 5 | 8 |
+| Hot cross bun, baked weight | 2 | 4 | 6 |
 
-Flatness is measured over the full face with the component unclamped and at
-ambient temperature. Measurement with the component held in the assembly
-fixture is not equivalent and shall not be recorded against this table.
+Weight is measured when the product has cooled for one hour. A weight taken
+from a warm product is not equivalent and shall not be recorded against this
+table.
 
-Class is assigned per feature in the drawing title block. Where a feature
-appears in this table and is not assigned a class on the drawing, Class B
-applies.
+Class is assigned per product on the recipe card. Where a product appears in
+this table and is not assigned a class on the recipe card, Class B applies.
 
-## 3. Fastener torque bands
+## 3. Oven temperature bands
 
-Torque bands state the acceptable range around a specified value. The band is
-expressed as a percentage of the specified value and applies at the point of
-application.
-
-| Fastener | Specified value basis | Band, revision 8 | Band, revision 9 |
-| --- | --- | --- | --- |
-| M6 | Per instruction | ±20% | ±12% |
-| M8 | Per instruction | ±20% | ±10% |
-| M10 | Per instruction | ±20% | ±10% |
-| M12 | Per instruction | ±20% | ±12% |
-
-Bands stated at revision 8 applied a single tolerance across all fastener
-dimensions. Revision 9 states a band per dimension.
+Temperature bands state how far an oven may drift from its set temperature
+during a bake. Values are in degrees Celsius either side of the set
+temperature.
 
 | Provision | Revision 8 | Revision 9 |
 | --- | --- | --- |
-| Band basis | Single, all dimensions | Per dimension |
-| Measurement point | Not stated | At application |
-| Residual measurement | Not covered | Covered, see note |
+| Band basis | Single band, all ovens | Per oven type |
+| Deck oven | 15 | 5 |
+| Rack oven | 15 | 8 |
+| Convection oven | 15 | 10 |
+| Measurement point | Not stated | Centre of the deck or rack |
 
-Residual torque measured after a settling interval is not within the scope of
-the band stated at application. Where a residual measurement is required, the
-acceptance value is stated in the instruction governing the assembly.
+An oven found outside its band is taken out of use until it has been checked.
+The band applies to the oven and not to any one product baked in it.

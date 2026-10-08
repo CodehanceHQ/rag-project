@@ -1,0 +1,38 @@
+{
+  "file": "recipe_change_approval_procedure.pdf",
+  "doc_id": "RCAP",
+  "date": "2024-01",
+  "pages_total": 5,
+  "sections": [
+    {
+      "section": "1. Purpose",
+      "page_start": 1,
+      "page_end": 1,
+      "pages": "1"
+    },
+    {
+      "section": "2. Change classes",
+      "page_start": 2,
+      "page_end": 2,
+      "pages": "2"
+    },
+    {
+      "section": "3. Approval level by class",
+      "page_start": 3,
+      "page_end": 3,
+      "pages": "3"
+    },
+    {
+      "section": "4. Allergen-critical recipes",
+      "page_start": 4,
+      "page_end": 4,
+      "pages": "4"
+    },
+    {
+      "section": "5. Records",
+      "page_start": 5,
+      "page_end": 5,
+      "pages": "5"
+    }
+  ]
+}

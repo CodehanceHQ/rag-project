@@ -1,38 +1,32 @@
 {
   "file": "supplier_register.pdf",
-  "doc_id": "REG-SUP-11",
-  "date": "2025-07",
-  "pages_total": 5,
+  "doc_id": "SUPR-12",
+  "date": "2025-04",
+  "pages_total": 4,
   "sections": [
     {
-      "section": "1. Approved supplier index",
+      "section": "1. Purpose",
       "page_start": 1,
       "page_end": 1,
       "pages": "1"
     },
     {
-      "section": "2. Alpha Dichtungen GmbH",
+      "section": "2. Supplier records",
       "page_start": 2,
       "page_end": 2,
       "pages": "2"
     },
     {
-      "section": "3. Beta Valve Co.",
+      "section": "3. Delivery areas",
       "page_start": 3,
       "page_end": 3,
       "pages": "3"
     },
     {
-      "section": "4. Gamma Sealing Systems",
+      "section": "4. Review",
       "page_start": 4,
       "page_end": 4,
       "pages": "4"
-    },
-    {
-      "section": "5. Regional supply notes",
-      "page_start": 5,
-      "page_end": 5,
-      "pages": "5"
     }
   ]
 }

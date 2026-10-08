@@ -11,30 +11,30 @@
     {
       "id": "am-01",
       "category": "ambiguous",
-      "question": "Who is authorised to approve a seal material change?",
+      "question": "Who is authorised to approve an ingredient change?",
       "expected_behavior": "request_clarification",
       "expected_sources": [
-        "doa_matrix_2024_01.pdf",
-        "doa_matrix_2025_03.pdf",
-        "material_change_approval_procedure.pdf"
+        "approval_matrix_2024_01.pdf",
+        "approval_matrix_2025_03.pdf",
+        "recipe_change_approval_procedure.pdf"
       ],
-      "expected_fact": "No single answer. PERSON_A held Level 3 under doa-2024-01; PERSON_B holds it under doa-2025-03. Correct behaviour is to ask as at what date, or to answer with both, scoped."
+      "expected_fact": "No single answer. Helen Brandt held Level 3 under AM-2024-01; Martin Osterman holds it under AM-2025-03. Correct behaviour is to ask as at what date, or to answer with both, scoped."
     },
     {
       "id": "am-02",
       "category": "ambiguous",
-      "question": "What is the tightening torque for the housing bolts?",
+      "question": "What temperature should the oven be set to for the sourdough?",
       "expected_behavior": "request_clarification",
       "expected_sources": [
-        "work_instruction_BV13.pdf",
-        "work_instruction_rev_D.pdf"
+        "baking_instruction_country.pdf",
+        "baking_instruction_rev_D.pdf"
       ],
-      "expected_fact": "No single answer. BV-12 uses M8 at 40 Nm; BV-13 uses a different fastener at a different value. Correct behaviour is to ask which assembly."
+      "expected_fact": "No single answer. The Classic Sourdough bakes in the deck oven at 230 \u00b0C; the Country Sourdough bakes in the rack oven at 210 \u00b0C. Correct behaviour is to ask which product."
     },
     {
       "id": "un-01",
       "category": "unanswerable",
-      "question": "What is the warranty period for the BV-12?",
+      "question": "How many calories are in the Classic Sourdough?",
       "expected_behavior": "abstain",
       "expected_sources": [],
       "expected_fact": "NOT_IN_CORPUS"
@@ -42,11 +42,11 @@
     {
       "id": "un-02",
       "category": "unanswerable",
-      "question": "Which supplier of the recalled part also supplies the Regensburg plant?",
+      "question": "Which flour supplier for the withdrawn product also supplies the Market Square bakery?",
       "expected_behavior": "abstain",
       "expected_sources": [],
-      "expected_fact": "NOT_IN_CORPUS \u2014 there is no record of a Regensburg plant",
-      "competing_answer": "probably Bamberg's supplier, cited \u2014 embeddings do not separate German city names well. Confidently wrong in the same shape as mh-01, on a question whose right answer was \"we do not have that\"."
+      "expected_fact": "NOT_IN_CORPUS \u2014 there is no record of a Market Square bakery",
+      "competing_answer": "probably the High Street's supplier, cited. Confidently wrong in the same shape as mh-01, on a question whose right answer was \"we do not have that\"."
     }
   ]
 }

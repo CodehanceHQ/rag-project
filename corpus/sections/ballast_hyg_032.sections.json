@@ -1,0 +1,26 @@
+{
+  "file": "ballast_hyg_032.pdf",
+  "doc_id": "HYG-2025-032",
+  "date": "2025-08",
+  "pages_total": 34,
+  "sections": [
+    {
+      "section": "1. Scope",
+      "page_start": 1,
+      "page_end": 12,
+      "pages": "1-12"
+    },
+    {
+      "section": "2. Checklist",
+      "page_start": 13,
+      "page_end": 23,
+      "pages": "13-23"
+    },
+    {
+      "section": "3. Findings",
+      "page_start": 24,
+      "page_end": 34,
+      "pages": "24-34"
+    }
+  ]
+}
