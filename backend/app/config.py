@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     chunk_tokens: int = 0
     chunk_overlap_tokens: int = 40
     semantic_breakpoint_percentile: float = 90.0
+    # Contextual chunking: which strategy does the cutting, which model writes
+    # the sentence (blank = OPENROUTER_MODEL), and how many tokens it may use.
+    contextual_base_strategy: str = "recursive"
+    contextual_model: str = ""
+    contextual_context_tokens: int = 60
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from app.chunking import CHUNKERS, SourceDocument, get_chunker
 from app.chunking.sections import detect_sections
@@ -16,9 +17,9 @@ def load(name: str) -> SourceDocument:
 
 class RegistryTests(unittest.TestCase):
     def test_every_strategy_is_registered_under_its_own_name(self):
-        for name in ("recursive", "structural", "hybrid", "semantic"):
+        for name in ("recursive", "structural", "hybrid", "semantic", "contextual"):
             self.assertEqual(get_chunker(name).name, name)
-        self.assertEqual(set(CHUNKERS), {"recursive", "structural", "hybrid", "semantic"})
+        self.assertEqual(set(CHUNKERS), {"recursive", "structural", "hybrid", "semantic", "contextual"})
 
     def test_unknown_strategy_names_the_choices(self):
         with self.assertRaises(ValueError) as raised:
@@ -73,6 +74,63 @@ class TokenLimitTests(unittest.TestCase):
     def test_structural_does_not_limit_size(self):
         chunks = get_chunker("structural").chunk(load("tolerance_tables.pdf"))
         self.assertTrue(any(count_tokens(chunk.text) > token_budget() for chunk in chunks))
+
+
+class ContextualTests(unittest.TestCase):
+    """The model is replaced with a stand-in, so these tests make no paid calls."""
+
+    SENTENCE = ("This passage is from the baking instruction for the Classic Sourdough (SD-12), "
+                "in the section on baking loaves in the deck oven.")
+
+    def reply(self, text):
+        response = Mock()
+        response.json.return_value = {"choices": [{"message": {"content": text}}]}
+        return response
+
+    def chunks(self, text=None, **kwargs):
+        from app.chunking.contextual import ContextualChunker
+        from app.config import settings
+
+        with patch.object(settings, "openrouter_api_key", "test-key"), \
+             patch("app.chunking.contextual.httpx.post", return_value=self.reply(text or self.SENTENCE)) as post:
+            found = ContextualChunker(**kwargs).chunk(load("baking_instruction_rev_D.pdf"))
+        return found, post
+
+    def test_every_chunk_starts_with_its_sentence_and_one_call_is_made_per_chunk(self):
+        found, post = self.chunks()
+        self.assertTrue(found)
+        self.assertTrue(all(chunk.text.startswith(self.SENTENCE + "\n") for chunk in found))
+        self.assertEqual(post.call_count, len(found))
+
+    def test_the_sentence_gives_the_temperature_chunk_its_oven(self):
+        found, _ = self.chunks()
+        temperature = [chunk for chunk in found if "230 °C" in chunk.text]
+        self.assertTrue(temperature)
+        self.assertTrue(all("deck oven" in chunk.text for chunk in temperature))
+
+    def test_the_model_is_shown_the_text_before_the_passage(self):
+        found, post = self.chunks()
+        prompts = [call.kwargs["json"]["messages"][1]["content"] for call in post.call_args_list]
+        target = next(p for p in prompts if "Set it to 230 °C" in p.split("Passage:\n")[1])
+        self.assertIn("baked in the deck oven", target.split("Passage:\n")[0])
+
+    def test_sentence_and_passage_together_fit_what_the_model_reads(self):
+        found, _ = self.chunks(text=" ".join(["context"] * 400))
+        for chunk in found:
+            self.assertLessEqual(count_tokens(chunk.text), token_budget())
+
+    def test_the_base_strategy_can_be_changed(self):
+        found, _ = self.chunks(base="hybrid")
+        self.assertTrue(all("baking_instruction_rev_D.pdf › " in chunk.text for chunk in found))
+
+    def test_it_refuses_to_run_without_a_key(self):
+        from app.chunking.contextual import ContextualChunker
+        from app.config import settings
+
+        with patch.object(settings, "openrouter_api_key", ""):
+            with self.assertRaises(ValueError) as raised:
+                ContextualChunker().chunk(load("baking_instruction_rev_D.pdf"))
+        self.assertIn("OPENROUTER_API_KEY", str(raised.exception))
 
 
 class SemanticSentenceTests(unittest.TestCase):

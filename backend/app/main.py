@@ -52,7 +52,9 @@ def _serialize_document(record: Dict[str, Any]) -> Dict[str, Any]:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    get_chunker(settings.chunking_strategy)  # stop now if CHUNKING_STRATEGY is misspelt
+    chunker = get_chunker(settings.chunking_strategy)  # stop now if CHUNKING_STRATEGY is misspelt
+    if hasattr(chunker, "validate"):
+        chunker.validate()                             # or if it needs a key that is not set
     ensure_database()
     yield
 

@@ -4,10 +4,13 @@
     structural   one chunk per section, cut at headings
     hybrid       cut at headings, then by size inside long sections
     semantic     cut where the topic changes
+    contextual   cut with another strategy, then add a model-written sentence
+                 saying what each piece is about (paid: one call per chunk)
 """
 from typing import Callable, Dict
 
 from .base import Chunk, Chunker, SourceDocument
+from .contextual import ContextualChunker
 from .hybrid import HybridChunker
 from .recursive import RecursiveChunker
 from .semantic import SemanticChunker
@@ -18,6 +21,7 @@ CHUNKERS: Dict[str, Callable[[], Chunker]] = {
     StructuralChunker.name: StructuralChunker,
     HybridChunker.name: HybridChunker,
     SemanticChunker.name: SemanticChunker,
+    ContextualChunker.name: ContextualChunker,
 }
 
 
