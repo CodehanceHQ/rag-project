@@ -8,15 +8,15 @@ ingesting it would let them be retrieved as source material.
 
 ## The questions
 
-There are 25, in seven shapes. They live in `corpus/manifest.yaml`, and the
+There are 17, in seven shapes. They live in `corpus/manifest.yaml`, and the
 two JSON files here are generated from it by `corpus/generate/eval_suites.py`.
 Edit the manifest and regenerate; never edit the JSON by hand.
 
 | Shape | Count | Example | Expected of single-pass RAG |
 | --- | --- | --- | --- |
-| Single hop | 5 | What is the shelf life of the Classic Sourdough? | Pass |
-| Multi hop | 5 | Which flour supplier for the withdrawn product also supplies the High Street bakery? | Fail |
-| Long distance | 4 | Why was the Classic Sourdough launch delayed? | Fail |
+| Single hop | 2 | What is the shelf life of the Classic Sourdough? | Pass |
+| Multi hop | 2 | Which flour supplier for the withdrawn product also supplies the High Street bakery? | Fail |
+| Long distance | 2 | Why was the Classic Sourdough launch delayed? | Fail |
 | Context loss | 4 | What temperature is the deck oven set to for the Classic Sourdough? | Fail under plain chunking |
 | Aggregation | 3 | Which bakery had the most waste in 2025? | Fail |
 | Ambiguous | 2 | What temperature should the oven be set to for the sourdough? | Should ask which product |
@@ -36,6 +36,15 @@ Checks which documents came back. Use **Run evaluation** in the UI, or:
 
 ```bash
 curl -s -X POST http://localhost:18001/evaluations/run | jq
+```
+
+To run only some shapes, untick the others in the UI, or name the ones you
+want:
+
+```bash
+curl -s -X POST http://localhost:18001/evaluations/run \
+  -H 'Content-Type: application/json' \
+  -d '{"categories": ["single_hop", "context_loss"]}' | jq
 ```
 
 Scoring is by filename: was an expected source returned, did the pipeline

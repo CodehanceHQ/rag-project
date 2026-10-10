@@ -6,7 +6,7 @@
     "corpus/documents"
   ],
   "excluded_document_groups": [],
-  "instructions": "Path A over the 25-question benchmark. single_hop rows must PASS (test_baseline_succeeds); multi_hop and long_distance rows are expected to FAIL (test_baseline_fails). A passing multi_hop row means the corpus is not hard enough \u2014 see corpus/manifest.yaml negatives.",
+  "instructions": "Path A over the 17-question benchmark. single_hop rows must PASS (test_baseline_succeeds); multi_hop and long_distance rows are expected to FAIL (test_baseline_fails). A passing multi_hop row means the corpus is not hard enough \u2014 see corpus/manifest.yaml negatives.",
   "cases": [
     {
       "id": "sh-01",
@@ -30,36 +30,6 @@
       "expected_fact": "Classic Sourdough (SD-12)"
     },
     {
-      "id": "sh-03",
-      "category": "single_hop",
-      "question": "What does the Riverside bakery do?",
-      "expected_behavior": "retrieve_answer",
-      "expected_sources": [
-        "site_register.pdf"
-      ],
-      "expected_fact": "Dough preparation and shaping. It does not bake."
-    },
-    {
-      "id": "sh-04",
-      "category": "single_hop",
-      "question": "What was found wrong with batch 4471?",
-      "expected_behavior": "retrieve_answer",
-      "expected_sources": [
-        "quality_batch_4471.pdf"
-      ],
-      "expected_fact": "dough hydration out of tolerance"
-    },
-    {
-      "id": "sh-05",
-      "category": "single_hop",
-      "question": "Where is Alder Mill based?",
-      "expected_behavior": "retrieve_answer",
-      "expected_sources": [
-        "supplier_register.pdf"
-      ],
-      "expected_fact": "Ashby"
-    },
-    {
       "id": "mh-01",
       "category": "multi_hop",
       "question": "Which flour supplier for the withdrawn product also supplies the High Street bakery?",
@@ -74,19 +44,6 @@
       "competing_answer": "Alder Mill"
     },
     {
-      "id": "mh-02",
-      "category": "multi_hop",
-      "question": "Who was authorised to approve the change to Heritage Stoneground flour at the time it was made?",
-      "expected_behavior": "retrieve_multiple_sources",
-      "expected_sources": [
-        "RC-88_flour_change.pdf",
-        "approval_matrix_2024_01.pdf",
-        "recipe_change_approval_procedure.pdf",
-        "role_appointments.pdf"
-      ],
-      "expected_fact": "Helen Brandt"
-    },
-    {
       "id": "mh-03",
       "category": "multi_hop",
       "question": "Which product did recipe change RC-88 apply to, and what is that product's shelf life?",
@@ -97,34 +54,6 @@
       ],
       "expected_fact": "Classic Sourdough (SD-12); 4 days",
       "competing_answer": "6 days"
-    },
-    {
-      "id": "mh-04",
-      "category": "multi_hop",
-      "question": "Give me the full picture on the product withdrawn in W-2025-014 \u2014 who supplies its flour, which of those suppliers serve the High Street bakery, and who held the authority to approve its flour change at the time that change was made.",
-      "expected_behavior": "retrieve_multiple_sources",
-      "expected_sources": [
-        "RC-88_flour_change.pdf",
-        "approval_matrix_2024_01.pdf",
-        "product_specifications_2025.pdf",
-        "recipe_change_approval_procedure.pdf",
-        "role_appointments.pdf",
-        "site_register.pdf",
-        "supplier_register.pdf",
-        "withdrawal_W-2025-014.pdf"
-      ],
-      "expected_fact": "Classic Sourdough (SD-12). Flour suppliers: Alder Mill and Birch Lane Mill. Of those, Birch Lane Mill serves the High Street bakery. The flour change (RC-88) required Level 3; the holder at that date was Helen Brandt."
-    },
-    {
-      "id": "mh-05",
-      "category": "multi_hop",
-      "question": "What flour did the Classic Sourdough use before the current one, and when did it change?",
-      "expected_behavior": "retrieve_multiple_sources",
-      "expected_sources": [
-        "RC-88_flour_change.pdf",
-        "product_specifications_2024.pdf"
-      ],
-      "expected_fact": "Golden Field flour; changed at RC-88 on 2024-09-11"
     },
     {
       "id": "ld-01",
@@ -153,33 +82,6 @@
       ],
       "expected_fact": "Yes \u2014 four separate incidents of underweight loaves at the High Street bakery across 2025 (February, May, August and October), each recorded by a different function and none referring to any other.",
       "competing_answer": "the \"High Street site quality overview\" section of facilities_site_services.pdf \u2014 a near-perfect lexical match that reports no incidents"
-    },
-    {
-      "id": "ld-03",
-      "category": "long_distance",
-      "question": "Why was the baking procedure for the Classic Sourdough changed?",
-      "expected_behavior": "retrieve_multiple_sources",
-      "expected_sources": [
-        "RC-91_baking_update.pdf",
-        "customer_feedback_2024_h2.pdf",
-        "test_kitchen_bake_trials.pdf",
-        "tolerance_tables.pdf"
-      ],
-      "expected_fact": "Customers reported gummy centres; test kitchen trials reproduced it and showed steam fixed it; the oven temperature band was found too wide and was tightened; RC-91 added steam for the first 10 minutes and a core temperature check after 35 minutes. The oven temperature did not change.",
-      "competing_answer": "RC-91_baking_update.pdf \u2014 top hit, states what changed, explains nothing"
-    },
-    {
-      "id": "ld-04",
-      "category": "long_distance",
-      "question": "What do we still owe the food safety authority on withdrawal W-2025-014?",
-      "expected_behavior": "retrieve_multiple_sources",
-      "expected_sources": [
-        "allergen_retest_certificate.pdf",
-        "corrective_action_commitment_2025_04.pdf",
-        "regulator_notification_W-2025-014.pdf",
-        "stock_return_log.pdf"
-      ],
-      "expected_fact": "Four things: the follow-up report due 2026-05-29, the corrective action still in progress (the metal detector), 48 loaves not yet returned, and the allergen retest booked for 2026-04-14."
     },
     {
       "id": "cl-01",

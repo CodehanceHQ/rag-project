@@ -113,6 +113,7 @@ type EvaluationResponse = {
   cases: Array<{
     suite: string;
     id: string;
+    category: string;
     question: string;
     expected_behavior: string;
     passed: boolean;
@@ -149,6 +150,13 @@ const ingestionStages = [
   ["Embedded", 80],
   ["Indexed", 100],
 ] as const;
+
+type EvaluationCategory = { category: string; count: number };
+
+function categoryLabel(category: string): string {
+  const text = category.replaceAll("_", " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, init);
@@ -204,6 +212,8 @@ export default function Home() {
   const [answering, setAnswering] = useState(false);
   const [answerSeconds, setAnswerSeconds] = useState(0);
   const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null);
+  const [evaluationCategories, setEvaluationCategories] = useState<EvaluationCategory[]>([]);
+  const [chosenCategories, setChosenCategories] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
   const [activeView, setActiveView] = useState<AppView>("documents");
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("overview");
@@ -403,11 +413,37 @@ export default function Home() {
     }
   }
 
+  useEffect(() => {
+    api<EvaluationCategory[]>("/evaluations/categories")
+      .then((categories) => {
+        setEvaluationCategories(categories);
+        setChosenCategories(new Set(categories.map((item) => item.category)));
+      })
+      .catch(() => setEvaluationCategories([]));
+  }, []);
+
+  const chosenCount = evaluationCategories
+    .filter((item) => chosenCategories.has(item.category))
+    .reduce((sum, item) => sum + item.count, 0);
+
+  function toggleCategory(category: string) {
+    setChosenCategories((current) => {
+      const next = new Set(current);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }
+
   async function handleEvaluation() {
     setEvaluating(true);
     setError("");
     try {
-      const response = await api<EvaluationResponse>("/evaluations/run", { method: "POST" });
+      const response = await api<EvaluationResponse>("/evaluations/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(evaluationCategories.length ? { categories: [...chosenCategories] } : {}),
+      });
       setEvaluation(response);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Evaluation failed.");
@@ -644,12 +680,35 @@ export default function Home() {
                   <p>Compare vector-only retrieval with filtering, hybrid search, rank fusion, reranking and abstention.</p>
                 </div>
                 <div className="evaluation-action">
-                  <button className="secondary-button" disabled={evaluating || searching} onClick={handleEvaluation}>
-                    {evaluating ? "Running 19 checks…" : "Run evaluation"}
+                  <button
+                    className="secondary-button"
+                    disabled={evaluating || searching || (evaluationCategories.length > 0 && !chosenCount)}
+                    onClick={handleEvaluation}
+                  >
+                    {evaluating
+                      ? `Running ${chosenCount || ""} checks…`
+                      : chosenCount ? `Run evaluation (${chosenCount})` : "Run evaluation"}
                   </button>
                   <small>{health?.ambiguity_llm_configured ? "May call OpenRouter" : "Ambiguity check disabled"}</small>
                 </div>
               </header>
+
+              {evaluationCategories.length > 0 && (
+                <div className="evaluation-kinds" role="group" aria-label="Question kinds to evaluate">
+                  <span>Evaluate</span>
+                  {evaluationCategories.map((item) => (
+                    <label key={item.category}>
+                      <input
+                        type="checkbox"
+                        checked={chosenCategories.has(item.category)}
+                        disabled={evaluating}
+                        onChange={() => toggleCategory(item.category)}
+                      />
+                      {categoryLabel(item.category)} <small>{item.count}</small>
+                    </label>
+                  ))}
+                </div>
+              )}
 
               {evaluation && (
                 <section className="evaluation-panel" aria-live="polite">
@@ -664,22 +723,33 @@ export default function Home() {
                     </span>
                   </div>
                   <div className="evaluation-cases">
-                    {evaluation.cases.map((item) => (
-                      <details className={item.passed ? "passed" : "failed"} key={`${item.suite}-${item.id}`}>
-                        <summary>
-                          <span>{item.passed ? "✓" : "×"}</span>
-                          <strong>{item.id}</strong>
-                          <small>{item.detail}</small>
-                        </summary>
-                        <p>{item.question}</p>
-                        <div>
-                          Expected: {item.expected_behavior.replaceAll("_", " ")}
-                          {item.top_results.length
-                            ? ` · Top results: ${item.top_results.map((result) => `${result.filename} (${result.score.toFixed(3)})`).join(", ")}`
-                            : " · No passages returned"}
-                        </div>
-                      </details>
-                    ))}
+                    {[...new Set(evaluation.cases.map((item) => item.category))].map((category) => {
+                      const group = evaluation.cases.filter((item) => item.category === category);
+                      return (
+                        <Fragment key={category}>
+                          <h3>
+                            {categoryLabel(category)}
+                            <small>{group.filter((item) => item.passed).length} of {group.length} passed</small>
+                          </h3>
+                          {group.map((item) => (
+                            <details className={item.passed ? "passed" : "failed"} key={`${item.suite}-${item.id}`}>
+                              <summary>
+                                <span>{item.passed ? "✓" : "×"}</span>
+                                <strong>{item.id}</strong>
+                                <small>{item.detail}</small>
+                              </summary>
+                              <p>{item.question}</p>
+                              <div>
+                                Expected: {item.expected_behavior.replaceAll("_", " ")}
+                                {item.top_results.length
+                                  ? ` · Top results: ${item.top_results.map((result) => `${result.filename} (${result.score.toFixed(3)})`).join(", ")}`
+                                  : " · No passages returned"}
+                              </div>
+                            </details>
+                          ))}
+                        </Fragment>
+                      );
+                    })}
                   </div>
                 </section>
               )}

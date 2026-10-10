@@ -25,7 +25,7 @@ registers and checklists that look relevant and are not.
 
 | Path | What it is | Edit? |
 |---|---|---|
-| `manifest.yaml` | The fact table — entities, negatives, the 25 questions | **Yes, this is the source of truth** |
+| `manifest.yaml` | The fact table — entities, negatives, the 17 questions | **Yes, this is the source of truth** |
 | `document-spec.yaml` | For each hand-written document: strings it must and must not hold | Yes |
 | `source/*.md` | Document text (98 files: 29 hand-written + 2 specification books + 18 constrained + 49 ballast) | Hand-written yes; generated no |
 | `documents/*.pdf` | Rendered and committed. **The only directory that gets ingested** | Never — regenerate |

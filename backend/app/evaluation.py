@@ -1,17 +1,26 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterator, Tuple
+from typing import Any, Dict, Iterable, Iterator, Optional, Tuple
 
 
 EVALUATION_DIRECTORY = Path(__file__).resolve().parents[2] / "evaluations"
 SUITES = ("questions.json", "conflict-and-noise-questions.json")
 
 
-def load_cases() -> Iterator[Tuple[str, Dict[str, Any]]]:
+def load_cases(categories: Optional[Iterable[str]] = None) -> Iterator[Tuple[str, Dict[str, Any]]]:
+    wanted = None if categories is None else set(categories)
     for filename in SUITES:
         payload = json.loads((EVALUATION_DIRECTORY / filename).read_text())
         for case in payload["cases"]:
-            yield filename.removesuffix(".json"), case
+            if wanted is None or case["category"] in wanted:
+                yield filename.removesuffix(".json"), case
+
+
+def category_counts() -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    for _, case in load_cases():
+        counts[case["category"]] = counts.get(case["category"], 0) + 1
+    return counts
 
 
 def assess_case(case: Dict[str, Any], response: Dict[str, Any]) -> Tuple[bool, str]:

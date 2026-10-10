@@ -65,7 +65,7 @@ if __name__ == "__main__":
     ev = ROOT / "evaluations"
     (ev / "questions.json").write_text(json.dumps(suite(
         "baseline-shapes", SUITE_A,
-        "Path A over the 25-question benchmark. single_hop rows must PASS "
+        "Path A over the 17-question benchmark. single_hop rows must PASS "
         "(test_baseline_succeeds); multi_hop and long_distance rows are "
         "expected to FAIL (test_baseline_fails). A passing multi_hop row means "
         "the corpus is not hard enough — see corpus/manifest.yaml negatives."

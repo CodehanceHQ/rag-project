@@ -18,7 +18,7 @@ from .ambiguity import detect_ambiguity
 from .chunking import get_chunker
 from .database import chunks, documents, ensure_database, raw_files, search_index_status, vector_index_status
 from .embeddings import get_embeddings
-from .evaluation import assess_case, load_cases
+from .evaluation import assess_case, category_counts, load_cases
 from .extractors import SUPPORTED_EXTENSIONS
 from .generation import answer_model, generate_answer
 from .ingestion import ingest_document
@@ -485,12 +485,26 @@ def answer_endpoint(request: AnswerRequest) -> Dict[str, Any]:
     )
 
 
+class EvaluationRequest(BaseModel):
+    categories: Optional[List[str]] = None
+
+
+@app.get("/evaluations/categories")
+def evaluation_categories() -> List[Dict[str, Any]]:
+    return [{"category": category, "count": count} for category, count in category_counts().items()]
+
+
 @app.post("/evaluations/run")
 @traceable(name="retrieval-evaluation", run_type="chain")
-def run_evaluation() -> Dict[str, Any]:
+def run_evaluation(request: Optional[EvaluationRequest] = None) -> Dict[str, Any]:
+    categories = request.categories if request else None
+    if categories is not None:
+        unknown = sorted(set(categories) - set(category_counts()))
+        if unknown:
+            raise HTTPException(status_code=400, detail=f"Unknown evaluation category: {', '.join(unknown)}")
     started = time.perf_counter()
     cases = []
-    for suite, case in load_cases():
+    for suite, case in load_cases(categories):
         response = search(SearchRequest(
             query=case["question"],
             limit=8,
@@ -501,6 +515,7 @@ def run_evaluation() -> Dict[str, Any]:
         cases.append({
             "suite": suite,
             "id": case["id"],
+            "category": case["category"],
             "question": case["question"],
             "expected_behavior": case["expected_behavior"],
             "passed": passed,

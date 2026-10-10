@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 from app.ambiguity import detect_ambiguity
 from app.config import settings
 from app.extractors import _extract_csv
-from app.evaluation import assess_case
+from app.evaluation import assess_case, category_counts, load_cases
 from app.generation import generate_answer
 from app.retrieval import candidate_outcomes, reciprocal_rank_fusion
 from app.source_metadata import extract_source_metadata
@@ -85,6 +85,15 @@ class EvaluationTests(unittest.TestCase):
 
         self.assertFalse(passed)
         self.assertIn("not requested", detail)
+
+    def test_loads_only_the_chosen_categories(self):
+        counts = category_counts()
+        chosen = [case for _, case in load_cases(["single_hop", "ambiguous"])]
+
+        self.assertEqual({case["category"] for case in chosen}, {"single_hop", "ambiguous"})
+        self.assertEqual(len(chosen), counts["single_hop"] + counts["ambiguous"])
+        self.assertEqual(len(list(load_cases())), sum(counts.values()))
+        self.assertEqual(list(load_cases([])), [])
 
 
 class AmbiguityTests(unittest.TestCase):

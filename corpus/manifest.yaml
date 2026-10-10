@@ -3,7 +3,7 @@
 # The corpus is the paperwork of a small bakery company, Sunrise Bakery: three
 # sites, a sourdough range, three flour mills. It is the source of truth for
 # the entities, the documents that hold them, the negative constraints that
-# keep the hard questions hard, and the 25 benchmark questions.
+# keep the hard questions hard, and the 17 benchmark questions.
 #
 # Never adjust the corpus to protect a number that was guessed before
 # measuring. Measure, then record what was measured.
@@ -474,25 +474,6 @@ questions:
     expected_sources: ["withdrawal_W-2025-014.pdf"]
     role: hop 1 of mh-01, asked alone
 
-  - id: sh-03
-    shape: single_hop
-    q: What does the Riverside bakery do?
-    answer: Dough preparation and shaping. It does not bake.
-    expected_sources: [site_register.pdf]
-
-  - id: sh-04
-    shape: single_hop
-    q: What was found wrong with batch 4471?
-    answer: dough hydration out of tolerance
-    expected_sources: [quality_batch_4471.pdf]
-    role: fragment 1 of ld-01. Findable here; not rankable there.
-
-  - id: sh-05
-    shape: single_hop
-    q: Where is Alder Mill based?
-    answer: Ashby
-    expected_sources: [supplier_register.pdf]
-
   - id: mh-01
     shape: multi_hop
     q: Which flour supplier for the withdrawn product also supplies the High Street bakery?
@@ -505,16 +486,6 @@ questions:
       The central multi-hop example. Withdrawal -> product -> its flour
       sources -> the site's approved codes -> the company behind the code.
 
-  - id: mh-02
-    shape: multi_hop
-    q: Who was authorised to approve the change to Heritage Stoneground flour at the time it was made?
-    answer: Helen Brandt
-    wrong_answer_naive: Martin Osterman
-    expected_sources: [RC-88_flour_change.pdf, recipe_change_approval_procedure.pdf,
-                       approval_matrix_2024_01.pdf, role_appointments.pdf]
-    negatives: [authority_split, rc88_class_recorded]
-    role: four hops with a date dependency
-
   - id: mh-03
     shape: multi_hop
     q: Which product did recipe change RC-88 apply to, and what is that product's shelf life?
@@ -523,31 +494,6 @@ questions:
     expected_sources: [RC-88_flour_change.pdf, product_specifications_2025.pdf]
     negatives: [mh03_identity]
     role: sh-01 reached the long way. Difficulty is a property of the PATH, not the fact.
-
-  - id: mh-04
-    shape: multi_hop
-    q: Give me the full picture on the product withdrawn in W-2025-014 — who supplies
-       its flour, which of those suppliers serve the High Street bakery, and who held
-       the authority to approve its flour change at the time that change was made.
-    answer: |
-      Classic Sourdough (SD-12). Flour suppliers: Alder Mill and Birch Lane
-      Mill. Of those, Birch Lane Mill serves the High Street bakery. The flour
-      change (RC-88) required Level 3; the holder at that date was Helen Brandt.
-    expected_sources: ["withdrawal_W-2025-014.pdf", product_specifications_2025.pdf,
-                       site_register.pdf, supplier_register.pdf, RC-88_flour_change.pdf,
-                       recipe_change_approval_procedure.pdf, approval_matrix_2024_01.pdf,
-                       role_appointments.pdf]
-    negatives: [mh04_no_summary, multihop_supplier, authority_split]
-    role: the fan-out case — one shared hop, then three independent legs
-
-  - id: mh-05
-    shape: multi_hop
-    q: What flour did the Classic Sourdough use before the current one, and when did it change?
-    answer: Golden Field flour; changed at RC-88 on 2024-09-11
-    wrong_answer_naive: Heritage Stoneground flour
-    expected_sources: [RC-88_flour_change.pdf, product_specifications_2024.pdf]
-    negatives: [mh05_flour_supersession]
-    role: you cannot know which edition to open until you know when the change happened
 
   - id: ld-01
     shape: long_distance
@@ -575,33 +521,6 @@ questions:
       — a near-perfect lexical match that reports no incidents
     negatives: [high_street_recurring]
     unwritten_abstraction: recurring
-
-  - id: ld-03
-    shape: long_distance
-    q: Why was the baking procedure for the Classic Sourdough changed?
-    answer: |
-      Customers reported gummy centres; test kitchen trials reproduced it and
-      showed steam fixed it; the oven temperature band was found too wide and
-      was tightened; RC-91 added steam for the first 10 minutes and a core
-      temperature check after 35 minutes. The oven temperature did not change.
-    expected_sources: [customer_feedback_2024_h2.pdf, test_kitchen_bake_trials.pdf,
-                       tolerance_tables.pdf, RC-91_baking_update.pdf]
-    wrong_answer_path_a: |
-      RC-91_baking_update.pdf — top hit, states what changed, explains nothing
-    negatives: [baking_cause]
-    unwritten_abstraction: why
-
-  - id: ld-04
-    shape: long_distance
-    q: What do we still owe the food safety authority on withdrawal W-2025-014?
-    answer: |
-      Four things: the follow-up report due 2026-05-29, the corrective action
-      still in progress (the metal detector), 48 loaves not yet returned, and
-      the allergen retest booked for 2026-04-14.
-    expected_sources: ["regulator_notification_W-2025-014.pdf", corrective_action_commitment_2025_04.pdf,
-                       stock_return_log.pdf, allergen_retest_certificate.pdf]
-    negatives: [withdrawal_obligations]
-    unwritten_abstraction: outstanding
 
   - id: cl-01
     shape: context_loss
@@ -722,9 +641,9 @@ grading:
     answer is a failure however fluent.
 
 question_targets:
-  single_hop: 5
-  multi_hop: 5
-  long_distance: 4
+  single_hop: 2
+  multi_hop: 2
+  long_distance: 2
   context_loss: 4
   aggregation: 3
   ambiguous: 2

@@ -239,7 +239,13 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, textarea:f
 .evaluation-summary span { color: var(--text-muted); font-size: 10px; }
 .evaluation-summary > .evaluation-warning { color: var(--warning); font-weight: 600; }
 .evaluation-summary > .evaluation-success { color: var(--success); font-weight: 600; }
+.evaluation-kinds { margin: 20px 28px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; color: var(--text-muted); font-size: 11px; }
+.evaluation-kinds > span { font-weight: 600; color: var(--text); }
+.evaluation-kinds label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.evaluation-kinds small { color: var(--text-muted); font: 10px var(--mono); }
 .evaluation-cases { max-height: 310px; overflow-y: auto; }
+.evaluation-cases h3 { margin: 0; padding: 8px 14px; display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--surface-subtle); font-size: 11px; font-weight: 600; }
+.evaluation-cases h3 small { color: var(--text-muted); font-size: 10px; font-weight: 400; }
 .evaluation-cases details { border-bottom: 1px solid var(--border); }
 .evaluation-cases details:last-child { border-bottom: 0; }
 .evaluation-cases summary { padding: 10px 14px; display: grid; grid-template-columns: 16px minmax(190px, .8fr) minmax(260px, 1.4fr); align-items: center; gap: 8px; cursor: pointer; font-size: 10px; }
