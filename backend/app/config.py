@@ -17,7 +17,12 @@ class Settings(BaseSettings):
     mongodb_text_index: str = "chunk_text_index"
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_dimensions: int = 384
-    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    reranker_model: str = "Qwen/Qwen3-Reranker-4B"
+    # The most tokens of question and chunk the reranker reads, and how many
+    # pairs it scores at once. Without a limit, one very long chunk makes the
+    # whole batch as long as itself and can exhaust memory.
+    reranker_max_tokens: int = 1024
+    reranker_batch_size: int = 8
     retrieval_candidate_limit: int = 30
     rrf_rank_constant: int = 60
     minimum_relevance_score: float = 0.15
@@ -42,9 +47,14 @@ class Settings(BaseSettings):
     # is in each case, and how many tokens the sentence may use.
     contextual_base_strategy: str = "recursive"
     contextual_provider: str = "local"
-    contextual_local_model: str = "HuggingFaceTB/SmolLM3-3B"
+    contextual_local_model: str = "Qwen/Qwen3.5-9B"
     contextual_model: str = ""          # hosted; blank = OPENROUTER_MODEL
     contextual_context_tokens: int = 60
+    # Answering: where the model that writes the answer runs ("openrouter" or
+    # "local"), and which Hugging Face model the local one is.
+    answer_provider: str = "openrouter"
+    answer_local_model: str = "Qwen/Qwen3.5-9B"
+    answer_max_tokens: int = 400
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

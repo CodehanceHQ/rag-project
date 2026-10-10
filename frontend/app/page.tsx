@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, DragEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, FormEvent, Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:18001";
 
@@ -56,9 +56,21 @@ type SearchResult = {
   source_status: string;
   effective_date?: string;
   embedding_preview: number[];
+  rank?: number;
+  outcome?: "returned" | "beyond_limit" | "below_threshold" | "not_reranked";
+};
+
+type Stage = "vector" | "text" | "fused" | "reranked";
+
+const STAGES: Record<Stage, { title: string; score: string }> = {
+  vector: { title: "Vector search", score: "vector" },
+  text: { title: "Text search", score: "text" },
+  fused: { title: "After rank fusion", score: "fusion" },
+  reranked: { title: "After reranking", score: "reranker" },
 };
 
 type SearchResponse = {
+  query: string;
   mode: "vector" | "hybrid";
   abstained: boolean;
   decision: "answer" | "abstain" | "clarify";
@@ -76,8 +88,21 @@ type SearchResponse = {
     minimum_score?: number | null;
     top_reranker_score?: number | null;
     ambiguity_status: "not_applicable" | "not_configured" | "skipped" | "checked" | "error";
+    chunking_strategies?: string[];
   };
   results: SearchResult[];
+  stages?: Record<Stage, SearchResult[]>;
+};
+
+type AnswerResponse = SearchResponse & {
+  answer: string | null;
+  generation: {
+    status: "generated" | "abstained" | "not_configured" | "no_passages" | "error";
+    cited?: number[];
+    provider?: string;
+    model?: string;
+    detail?: string;
+  };
 };
 
 type EvaluationResponse = {
@@ -110,6 +135,8 @@ type Health = {
   minimum_relevance_score: number;
   ambiguity_llm_configured: boolean;
   ambiguity_model: string;
+  answer_provider: string;
+  answer_model: string;
 };
 
 type InspectorTab = "overview" | "chunks" | "storage";
@@ -172,6 +199,10 @@ export default function Home() {
   const [deleteTarget, setDeleteTarget] = useState<DocumentRecord | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null);
+  const [stage, setStage] = useState<Stage | "final">("final");
+  const [answer, setAnswer] = useState<AnswerResponse | null>(null);
+  const [answering, setAnswering] = useState(false);
+  const [answerSeconds, setAnswerSeconds] = useState(0);
   const [evaluation, setEvaluation] = useState<EvaluationResponse | null>(null);
   const [error, setError] = useState("");
   const [activeView, setActiveView] = useState<AppView>("documents");
@@ -265,15 +296,84 @@ export default function Home() {
           document_id: scope === "all" ? null : scope,
           mode: searchMode,
           include_superseded: includeSuperseded,
+          include_stages: true,
         }),
       });
       setResults(response.results);
       setSearchResponse(response);
+      setStage("final");
+      setAnswer(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Search failed.");
     } finally {
       setSearching(false);
     }
+  }
+
+  const shownStage = stage !== "final" && searchResponse?.stages ? stage : null;
+  const shown = shownStage ? searchResponse?.stages?.[shownStage] ?? [] : results;
+  const threshold = searchResponse?.pipeline.minimum_score?.toFixed(2);
+  const chunkingLabel = searchResponse?.pipeline.chunking_strategies?.length
+    ? `${searchResponse.pipeline.chunking_strategies.join(" + ")} chunks`
+    : "";
+
+  function stageButton(target: Stage | "final", label: string) {
+    if (!searchResponse?.stages) return <span>{label}</span>;
+    return (
+      <button type="button" className={stage === target ? "active" : ""} aria-pressed={stage === target} onClick={() => setStage(target)}>
+        {label}
+      </button>
+    );
+  }
+
+  // The answer step: the same retrieval, then one model call over the passages.
+  async function handleAnswer() {
+    if (!searchResponse) return;
+    setAnswering(true);
+    setError("");
+    const started = performance.now();
+    try {
+      const response = await api<AnswerResponse>("/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: searchResponse.query,
+          limit: 5,
+          document_id: scope === "all" ? null : scope,
+          mode: searchResponse.mode,
+          include_superseded: includeSuperseded,
+        }),
+      });
+      setAnswer(response);
+      setAnswerSeconds((performance.now() - started) / 1000);
+      setStage("final");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Answering failed.");
+    } finally {
+      setAnswering(false);
+    }
+  }
+
+  const answerLocal = health?.answer_provider === "local";
+  const answerModel = (answer?.generation.model ?? health?.answer_model ?? "").split("/").pop();
+  // Passage number in the answer -> the passage it was, so a result can say it was cited.
+  const citedAs = new Map<string, number>();
+  answer?.generation.cited?.forEach((n) => {
+    const passage = answer.results[n - 1];
+    if (passage) citedAs.set(passage.id, n);
+  });
+
+  function outcomeLabel(outcome: NonNullable<SearchResult["outcome"]>) {
+    if (outcome === "returned") return "→ returned";
+    if (outcome === "beyond_limit") return `→ passed ${threshold}, beyond the ${results.length} returned`;
+    if (outcome === "below_threshold") return `→ dropped: reranker under ${threshold}`;
+    return "→ dropped: not sent to the reranker";
+  }
+
+  function stageDivider(shownStage: Stage, result: SearchResult) {
+    if (shownStage === "reranked" && result.outcome === "below_threshold") return `Below the ${threshold} threshold: not returned`;
+    if (shownStage === "fused" && result.outcome === "not_reranked") return "Not sent to the reranker";
+    return null;
   }
 
   async function handleSearch(event: FormEvent) {
@@ -629,26 +729,70 @@ export default function Home() {
               {searchResponse && (
                 <div className="pipeline-summary" aria-live="polite">
                   {searchResponse.mode === "vector" ? (
-                    <span>Vector-only baseline · {searchResponse.pipeline.vector_candidates} candidates returned</span>
+                    <>
+                      {chunkingLabel && <><strong>{chunkingLabel}</strong><b>→</b></>}
+                      <span>Vector-only baseline · {searchResponse.pipeline.vector_candidates} candidates returned</span>
+                    </>
                   ) : (
                     <>
+                      {chunkingLabel && <><strong>{chunkingLabel}</strong><b>→</b></>}
                       <span>Metadata filter</span><b>→</b>
-                      <span>{searchResponse.pipeline.vector_candidates} vector + {searchResponse.pipeline.text_candidates} text</span><b>→</b>
-                      <span>{searchResponse.pipeline.fused_candidates} fused</span><b>→</b>
-                      <span>{searchResponse.pipeline.reranked_candidates} reranked</span><b>→</b>
-                      <span>
-                        threshold {searchResponse.pipeline.minimum_score?.toFixed(2)}
-                        {searchResponse.pipeline.top_reranker_score != null
-                          ? ` · top ${searchResponse.pipeline.top_reranker_score.toFixed(3)}`
-                          : ""}
-                      </span>
+                      {stageButton("vector", `${searchResponse.pipeline.vector_candidates} vector`)}
+                      <span>+</span>
+                      {stageButton("text", `${searchResponse.pipeline.text_candidates} text`)}<b>→</b>
+                      {stageButton("fused", `${searchResponse.pipeline.fused_candidates} fused`)}<b>→</b>
+                      {stageButton("reranked", `${searchResponse.pipeline.reranked_candidates} reranked`)}<b>→</b>
+                      {stageButton(
+                        "final",
+                        `threshold ${searchResponse.pipeline.minimum_score?.toFixed(2)}${
+                          searchResponse.pipeline.top_reranker_score != null
+                            ? ` · top ${searchResponse.pipeline.top_reranker_score.toFixed(3)}`
+                            : ""
+                        }`,
+                      )}
                       <span>ambiguity {searchResponse.pipeline.ambiguity_status.replaceAll("_", " ")}</span>
+                      <b>→</b>
+                      <button
+                        type="button"
+                        className={answer ? "active" : ""}
+                        disabled={answering || searching}
+                        onClick={handleAnswer}
+                        title={answerLocal ? "Runs on this machine: free, and slow" : "Calls the hosted model: paid"}
+                      >
+                        {answering ? "answering…" : `answer · ${answerModel} · ${answerLocal ? "local" : "paid"}`}
+                      </button>
                     </>
                   )}
                 </div>
               )}
 
               {searchResponse?.abstained && <div className="abstention" role="status">{searchResponse.message}</div>}
+
+              {answer && (
+                <section className="answer-panel" aria-live="polite">
+                  <p className="section-label">
+                    Answer · {answerModel} · {answer.generation.provider === "local" ? "local" : "hosted"} · {answerSeconds.toFixed(1)}s
+                  </p>
+                  {answer.generation.status === "generated" ? (
+                    <>
+                      <p className="answer-text">{answer.answer}</p>
+                      <small>
+                        Written from the top {answer.results.length} passages.{" "}
+                        {answer.generation.cited?.length
+                          ? `Cited: ${answer.generation.cited.map((n) => `[${n}]`).join(" ")}`
+                          : "It cited none of them."}
+                      </small>
+                    </>
+                  ) : (
+                    <p className="answer-text">
+                      {answer.generation.status === "abstained" && "No answer was written: retrieval found nothing relevant enough."}
+                      {answer.generation.status === "no_passages" && "No answer was written: there were no passages to read."}
+                      {answer.generation.status === "not_configured" && "No answer was written: the hosted model needs OPENROUTER_API_KEY, or set ANSWER_PROVIDER=local."}
+                      {answer.generation.status === "error" && `The answering model failed: ${answer.generation.detail ?? "unknown error"}`}
+                    </p>
+                  )}
+                </section>
+              )}
 
               {searchResponse?.decision === "clarify" && searchResponse.clarification && (
                 <section className="clarification" aria-live="polite">
@@ -674,19 +818,31 @@ export default function Home() {
               )}
 
               <div className="result-header">
-                <h3>Results</h3>
-                <span>{results.length ? `${results.length} passages` : "Run a search to see matches"}</span>
+                <h3>{shownStage ? STAGES[shownStage].title : "Results"}</h3>
+                <span>
+                  {shown.length
+                    ? `${shown.length} passages${shownStage ? " · in this stage's order" : ""}`
+                    : "Run a search to see matches"}
+                </span>
               </div>
               <div className="result-list">
-                {results.map((result, index) => (
-                  <article className="result-row" key={result.id}>
-                    <div className="result-rank">{index + 1}</div>
+                {shown.map((result, index) => (
+                  <Fragment key={`${stage}-${result.id}`}>
+                  {shownStage && result.outcome !== shown[index - 1]?.outcome && stageDivider(shownStage, result) && (
+                    <div className="stage-divider">{stageDivider(shownStage, result)}</div>
+                  )}
+                  <article className={`result-row${shownStage && result.outcome !== "returned" ? " dropped" : ""}`}>
+                    <div className="result-rank">{result.rank ?? index + 1}</div>
                     <div className="result-body">
                       <div className="result-meta">
                         <button onClick={() => selectDocument(result.document_id)}>{result.filename}</button>
                         <span>{result.page ? `Page ${result.page}` : result.section ?? `Chunk ${result.chunk_index + 1}`}</span>
                         <span className="signal-list">{result.signals.map((signal) => <em key={signal}>{signal}</em>)}</span>
-                        <strong>{result.score.toFixed(3)} {searchResponse?.mode === "hybrid" ? "reranker" : "vector"}</strong>
+                        {citedAs.has(result.id) && <em className="cited">cited [{citedAs.get(result.id)}]</em>}
+                        <strong>
+                          {result.score.toFixed(3)}{" "}
+                          {shownStage ? STAGES[shownStage].score : searchResponse?.mode === "hybrid" ? "reranker" : "vector"}
+                        </strong>
                       </div>
                       <p>{result.content}</p>
                       {searchResponse?.mode === "hybrid" && (
@@ -696,6 +852,9 @@ export default function Home() {
                           <span>fusion {result.fused_score?.toFixed(3) ?? "—"}</span>
                           <span>reranker {result.reranker_score?.toFixed(3) ?? "—"}</span>
                           <span>{result.source_status}{result.record_id ? ` · ${result.record_id}` : ""}</span>
+                          {shownStage && result.outcome && (
+                            <span className={`outcome ${result.outcome}`}>{outcomeLabel(result.outcome)}</span>
+                          )}
                         </div>
                       )}
                       <button className="vector-toggle" onClick={() => toggleVector(result.id)}>
@@ -704,8 +863,9 @@ export default function Home() {
                       {expandedVectors.has(result.id) && <VectorPreview values={result.embedding_preview} />}
                     </div>
                   </article>
+                  </Fragment>
                 ))}
-                {!results.length && !searchResponse?.abstained && <div className="empty-state">Retrieved passages will appear here with their ranking signals.</div>}
+                {!shown.length && !searchResponse?.abstained && <div className="empty-state">Retrieved passages will appear here with their ranking signals.</div>}
               </div>
             </div>
           )}

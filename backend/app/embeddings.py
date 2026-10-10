@@ -3,9 +3,10 @@ from functools import lru_cache
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from .config import settings
+from .loading import load_once
 
 
-@lru_cache(maxsize=1)
+@load_once()
 def get_embeddings() -> HuggingFaceEmbeddings:
     return HuggingFaceEmbeddings(
         model_name=settings.embedding_model,

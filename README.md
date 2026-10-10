@@ -15,7 +15,7 @@ Then open <http://localhost:13001>.
 
 `make start` checks your dependencies, installs the project the first time, starts MongoDB, and starts the API and the UI. It is safe to run again: anything already running is left alone. `Ctrl+C` stops the API and the UI; MongoDB keeps running until `make db-down`.
 
-The first run downloads the MongoDB image and the embedding model, so it takes a few minutes.
+The first run downloads the MongoDB image and the embedding model, so it takes a few minutes. The first search downloads the reranker, which is about 8 GB.
 
 ### Load the sample corpus
 
@@ -99,10 +99,10 @@ The system also reads `Status:` and `Effective date:` lines from a document's he
 
 | Provider | Where | Cost | Speed | Privacy |
 | --- | --- | --- | --- | --- |
-| `local` (default) | A Hugging Face model on your machine, `HuggingFaceTB/SmolLM3-3B` unless you set `CONTEXTUAL_LOCAL_MODEL` | Free | A few seconds per chunk; hours for the whole sample corpus | Nothing leaves your machine |
+| `local` (default) | A Hugging Face model on your machine, `Qwen/Qwen3.5-9B` unless you set `CONTEXTUAL_LOCAL_MODEL` | Free | A few seconds per chunk; hours for the whole sample corpus | Nothing leaves your machine |
 | `openrouter` | A hosted model | Paid: one call per chunk, about 4,000 for the sample corpus | Minutes for the whole corpus | Document text is sent to the provider |
 
-The local model downloads the first time it is used, about 6 GB for the default. To swap it, set `CONTEXTUAL_LOCAL_MODEL` to another Hugging Face chat model.
+The local model downloads the first time it is used, about 19 GB for the default. A smaller one such as `HuggingFaceTB/SmolLM3-3B` (about 6 GB) is faster and needs less memory. To swap it, set `CONTEXTUAL_LOCAL_MODEL` to another Hugging Face chat model.
 
 Chunk size is measured in tokens, the unit the embedding model counts in, not characters. The model reads a fixed number of tokens (256 for the default model) and ignores anything beyond that, and a table of numbers uses far more tokens per character than prose. So `recursive`, `hybrid`, `semantic` and `contextual` never produce a chunk longer than the model reads. `structural` is the exception: it keeps each section whole, however long.
 
@@ -158,7 +158,7 @@ The sample corpus is built to trigger each of these.
 
 ## Using it
 
-**In the UI** (<http://localhost:13001>): drop documents in, watch them ingest, inspect the stored chunks and vectors, and run searches. Results show the vector, full-text, fusion and reranker scores separately. The UI shows retrieved passages; it does not generate answers.
+**In the UI** (<http://localhost:13001>): drop documents in, watch them ingest, inspect the stored chunks and vectors, and run searches. Results show the vector, full-text, fusion and reranker scores separately. The strip above the results names the chunking strategy and each stage of the pipeline; click a stage to see its list and what became of every candidate. The last step on the strip writes an answer from the top passages, with the passages it cited marked.
 
 **Through the API** (<http://localhost:18001/docs> lists every endpoint):
 
@@ -168,7 +168,7 @@ curl -s -X POST http://localhost:18001/search \
   -H 'Content-Type: application/json' \
   -d '{"query": "What was found wrong with batch 4471?"}' | jq
 
-# passages plus a generated answer (needs OPENROUTER_API_KEY)
+# passages plus a generated answer (needs OPENROUTER_API_KEY, or ANSWER_PROVIDER=local)
 curl -s -X POST http://localhost:18001/answer \
   -H 'Content-Type: application/json' \
   -d '{"query": "What was found wrong with batch 4471?"}' | jq
@@ -200,15 +200,18 @@ Settings live in `.env`, which `make setup` creates from `.env.example`. Ingesti
 
 | Setting | Purpose |
 | --- | --- |
-| `OPENROUTER_API_KEY` | Enables generated answers and the ambiguity check. Without it, search still works. |
-| `OPENROUTER_MODEL` | The language model used for both |
+| `OPENROUTER_API_KEY` | Enables hosted answers and the ambiguity check. Without it, search still works, and answers work with `ANSWER_PROVIDER=local`. |
+| `OPENROUTER_MODEL` | The hosted language model used for both |
+| `ANSWER_PROVIDER` | Who writes the answer: `openrouter` (hosted, paid) or `local` (a Hugging Face model on your machine, free and slower). |
+| `ANSWER_LOCAL_MODEL` | The local answering model, `Qwen/Qwen3.5-9B` by default: about 19 GB to download and to hold in memory. |
 | `CHUNKING_STRATEGY` | How documents are cut into chunks: `recursive`, `structural`, `hybrid`, `semantic` or `contextual`. Re-ingest after changing it. |
 | `CONTEXTUAL_BASE_STRATEGY` | For `contextual` only: the strategy that does the cutting. |
 | `CONTEXTUAL_PROVIDER` | For `contextual` only: `local` (a Hugging Face model on your machine) or `openrouter` (hosted, paid). |
 | `CONTEXTUAL_LOCAL_MODEL`, `CONTEXTUAL_MODEL` | The model that writes the sentence: locally, and hosted (blank uses `OPENROUTER_MODEL`). |
 | `CHUNK_TOKENS`, `CHUNK_OVERLAP_TOKENS` | Largest chunk and the overlap between chunks, in embedding-model tokens. `CHUNK_TOKENS=0` means as many as the model reads. |
 | `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS` | The local embedding model. Change both together, then re-ingest every document. |
-| `RERANKER_MODEL` | The local reranker |
+| `RERANKER_MODEL` | The local reranker. The default, `Qwen/Qwen3-Reranker-4B`, is about 8 GB on disk and in memory. `cross-encoder/ms-marco-MiniLM-L-6-v2` is a small, fast alternative. Recalibrate `MINIMUM_RELEVANCE_SCORE` after changing it. |
+| `RERANKER_MAX_TOKENS` | The most tokens of question and chunk the reranker reads (1024). Longer chunks are cut off there, which keeps a very long chunk from exhausting memory. |
 | `MINIMUM_RELEVANCE_SCORE` | The abstain threshold (0.15). Recalibrate it if you change the corpus or either model. |
 | `LANGSMITH_TRACING` | Optional tracing, off by default |
 
@@ -243,6 +246,6 @@ Delete single documents through the UI, not directly in the database, so the fil
 | `make start` stops at the checks | Follow the `fix:` line printed under each failure |
 | "API offline" in the UI | Check <http://localhost:18001/health>; if MongoDB is down, run `make db-up` |
 | "The vector index is still building" | Wait a few seconds after first start and retry |
-| First upload or first search is slow | The embedding model and the reranker download once, then are cached |
+| First upload or first search is slow | The embedding model and the reranker (about 8 GB) download once, then are cached |
 | A PDF reports that no text was found | It is a scanned image; OCR isn't included |
 | `make start` says a port is in use by another program | It names the program and its PID; stop that program and run `make start` again |

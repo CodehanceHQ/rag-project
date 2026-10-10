@@ -16,16 +16,14 @@ CONTEXTUAL_PROVIDER chooses where that model runs:
 
 CONTEXTUAL_BASE_STRATEGY picks the strategy that does the cutting.
 """
-import re
-import threading
 from concurrent.futures import ThreadPoolExecutor
-from functools import lru_cache
 from typing import List, Protocol
 
 import httpx
 
 from ..config import settings
 from ..embeddings import count_tokens, token_budget
+from ..local_llm import THINKING, write_local
 from .base import Chunk, Chunker, SourceDocument
 from .hybrid import HybridChunker
 from .recursive import RecursiveChunker
@@ -110,27 +108,10 @@ class HostedWriter:
                          f"{type(last_error).__name__}")
 
 
-@lru_cache(maxsize=1)
-def _load_local(name: str):
-    """Download (first time) and load a Hugging Face text-generation model.
-    Uses the Mac's GPU when there is one, otherwise the CPU."""
-    import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
-    tokenizer = AutoTokenizer.from_pretrained(name)
-    model = AutoModelForCausalLM.from_pretrained(
-        name, dtype=torch.float16 if device == "mps" else torch.float32
-    ).to(device)
-    model.eval()
-    return tokenizer, model, device
-
-
 class LocalWriter:
     """A model from Hugging Face, run on this machine. Free and private. It
     writes one sentence at a time, so a large corpus takes a long while."""
     workers = 1
-    _lock = threading.Lock()
 
     def __init__(self):
         self.model_name = settings.contextual_local_model
@@ -141,26 +122,10 @@ class LocalWriter:
                              "the name of a Hugging Face model.")
 
     def write(self, prompt: str, max_tokens: int) -> str:
-        import torch
-
-        tokenizer, model, device = _load_local(self.model_name)
-        messages = [{"role": "system", "content": INSTRUCTION},
-                    {"role": "user", "content": prompt}]
-        # enable_thinking=False asks models that can reason aloud to answer
-        # directly; templates that have no such switch ignore it.
-        inputs = tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True, enable_thinking=False,
-            return_tensors="pt", return_dict=True,
-        ).to(device)
-        with self._lock, torch.no_grad():
-            output = model.generate(**inputs, max_new_tokens=max_tokens, do_sample=False,
-                                    pad_token_id=tokenizer.eos_token_id)
-        written = output[0][inputs["input_ids"].shape[1]:]
-        return tokenizer.decode(written, skip_special_tokens=True)
+        return write_local(self.model_name, INSTRUCTION, prompt, max_tokens)
 
 
 WRITERS = {"local": LocalWriter, "openrouter": HostedWriter}
-THINKING = re.compile(r"<think>.*?(</think>|$)", re.S)
 
 
 class ContextualChunker:

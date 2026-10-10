@@ -20,9 +20,9 @@ from .database import chunks, documents, ensure_database, raw_files, search_inde
 from .embeddings import get_embeddings
 from .evaluation import assess_case, load_cases
 from .extractors import SUPPORTED_EXTENSIONS
-from .generation import generate_answer
+from .generation import answer_model, generate_answer
 from .ingestion import ingest_document
-from .retrieval import reciprocal_rank_fusion, rerank
+from .retrieval import candidate_outcomes, reciprocal_rank_fusion, rerank
 
 
 def _serialize_document(record: Dict[str, Any]) -> Dict[str, Any]:
@@ -76,6 +76,7 @@ class SearchRequest(BaseModel):
     mode: Literal["vector", "hybrid"] = "hybrid"
     include_superseded: bool = False
     minimum_score: Optional[float] = Field(default=None, ge=0, le=1)
+    include_stages: bool = False
 
 
 @app.get("/health")
@@ -94,6 +95,8 @@ def health() -> Dict[str, Any]:
             "minimum_relevance_score": settings.minimum_relevance_score,
             "ambiguity_llm_configured": bool(settings.openrouter_api_key),
             "ambiguity_model": settings.openrouter_model,
+            "answer_provider": settings.answer_provider.strip().lower(),
+            "answer_model": answer_model(),
         }
     except PyMongoError as exc:
         raise HTTPException(status_code=503, detail=f"MongoDB unavailable: {exc}")
@@ -281,7 +284,7 @@ def _vector_candidates(request: SearchRequest, vector: List[float], limit: int) 
         {"$project": {
             "document_id": 1, "filename": 1, "chunk_index": 1, "page": 1,
             "section": 1, "content": 1, "embedding": 1, "record_id": 1,
-            "source_status": 1, "effective_date": 1,
+            "source_status": 1, "effective_date": 1, "chunking_strategy": 1,
             "score": {"$meta": "vectorSearchScore"},
         }},
     ]
@@ -309,7 +312,7 @@ def _text_candidates(request: SearchRequest, limit: int) -> List[Dict[str, Any]]
         {"$project": {
             "document_id": 1, "filename": 1, "chunk_index": 1, "page": 1,
             "section": 1, "content": 1, "embedding": 1, "record_id": 1,
-            "source_status": 1, "effective_date": 1,
+            "source_status": 1, "effective_date": 1, "chunking_strategy": 1,
             "score": {"$meta": "searchScore"},
         }},
     ]
@@ -343,6 +346,32 @@ def _serialize_result(row: Dict[str, Any], score: float) -> Dict[str, Any]:
     }
 
 
+def _chunking_strategies(rows: List[Dict[str, Any]]) -> List[str]:
+    """How the candidates were cut, read from the stored chunks themselves, so
+    a result names the strategy it was measured under."""
+    return sorted({row["chunking_strategy"] for row in rows if row.get("chunking_strategy")})
+
+
+def _stage_rows(
+    rows: List[Dict[str, Any]],
+    score_field: str,
+    fused_by_id: Dict[str, Dict[str, Any]],
+    outcomes: Dict[str, str],
+) -> List[Dict[str, Any]]:
+    """One stage of the pipeline, in that stage's order. Each row carries every
+    score the candidate went on to collect, and what became of it."""
+    output = []
+    for rank, row in enumerate(rows, start=1):
+        key = str(row["_id"])
+        candidate = fused_by_id.get(key, row)
+        output.append({
+            **_serialize_result(candidate, float(candidate.get(score_field) or 0.0)),
+            "rank": rank,
+            "outcome": outcomes.get(key, "not_reranked"),
+        })
+    return output
+
+
 @app.post("/search")
 @traceable(name="retrieval-pipeline", run_type="retriever")
 def search(request: SearchRequest) -> Dict[str, Any]:
@@ -367,6 +396,7 @@ def search(request: SearchRequest) -> Dict[str, Any]:
                     "fused_candidates": 0, "reranked_candidates": 0,
                     "minimum_score": None, "top_reranker_score": None,
                     "ambiguity_status": "not_applicable",
+                    "chunking_strategies": _chunking_strategies(matches),
                 },
                 "results": [_serialize_result(row, float(row.get("score", 0.0))) for row in matches],
             }
@@ -388,7 +418,7 @@ def search(request: SearchRequest) -> Dict[str, Any]:
             if not abstained
             else {"status": "not_applicable", "decision": "abstain"}
         )
-        return {
+        response = {
             "query": request.query,
             "mode": "hybrid",
             "embedding_dimensions": len(vector),
@@ -404,9 +434,20 @@ def search(request: SearchRequest) -> Dict[str, Any]:
                 "minimum_score": minimum_score,
                 "top_reranker_score": reranked[0]["reranker_score"] if reranked else None,
                 "ambiguity_status": ambiguity["status"],
+                "chunking_strategies": _chunking_strategies(fused),
             },
             "results": [_serialize_result(row, row["reranker_score"]) for row in accepted],
         }
+        if request.include_stages:
+            fused_by_id = {str(row["_id"]): row for row in fused}
+            outcomes = candidate_outcomes(reranked, accepted, minimum_score)
+            response["stages"] = {
+                "vector": _stage_rows(vector_matches, "vector_score", fused_by_id, outcomes),
+                "text": _stage_rows(text_matches, "text_score", fused_by_id, outcomes),
+                "fused": _stage_rows(fused, "fused_score", fused_by_id, outcomes),
+                "reranked": _stage_rows(reranked, "reranker_score", fused_by_id, outcomes),
+            }
+        return response
     except HTTPException:
         raise
     except PyMongoError as exc:
@@ -416,6 +457,7 @@ def search(request: SearchRequest) -> Dict[str, Any]:
 class AnswerRequest(BaseModel):
     query: str = Field(min_length=2, max_length=2000)
     limit: int = Field(default=5, ge=1, le=20)
+    document_id: Optional[str] = None
     mode: Literal["vector", "hybrid"] = "hybrid"
     include_superseded: bool = False
 
@@ -438,8 +480,8 @@ def answer(query: str, limit: int = 5, **kwargs: Any) -> Dict[str, Any]:
 @traceable(name="single-pass-rag", run_type="chain")
 def answer_endpoint(request: AnswerRequest) -> Dict[str, Any]:
     return answer(
-        request.query, limit=request.limit, mode=request.mode,
-        include_superseded=request.include_superseded,
+        request.query, limit=request.limit, document_id=request.document_id,
+        mode=request.mode, include_superseded=request.include_superseded,
     )
 
 

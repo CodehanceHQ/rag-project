@@ -7,17 +7,33 @@ from pydantic import BaseModel, Field, ValidationError
 from .config import settings
 
 
+# How long each piece of the model's reply may be. The reply format sent to
+# the model cannot carry these, so the prompt states them and an over-long
+# piece is shortened: a correct decision is never thrown away for its length.
+LABEL_CHARS = 80
+TEXT_CHARS = 300
+MAX_OPTIONS = 4
+
+
 class ClarificationOption(BaseModel):
-    label: str = Field(min_length=2, max_length=80)
-    refined_query: str = Field(min_length=2, max_length=300)
-    evidence_ids: List[str] = Field(min_length=1, max_length=6)
+    label: str = Field(min_length=2)
+    refined_query: str = Field(min_length=2)
+    evidence_ids: List[str] = Field(min_length=1)
 
 
 class AmbiguityDecision(BaseModel):
     decision: Literal["answer", "clarify"]
-    reason: str = Field(min_length=2, max_length=300)
-    clarification_question: str = Field(max_length=300)
-    options: List[ClarificationOption] = Field(max_length=4)
+    reason: str = Field(min_length=2)
+    clarification_question: str
+    options: List[ClarificationOption]
+
+
+def _shorten(text: str, limit: int) -> str:
+    """Cut at a word boundary and mark the cut."""
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
 
 
 AMBIGUITY_SCHEMA = {
@@ -55,7 +71,9 @@ Decide whether the user's query has one coherent interpretation in the supplied 
 
 Use `clarify` only when at least two well-supported interpretations would lead to different answers. Complementary passages about the same requested subject are not ambiguity. Different document versions are handled by metadata and are not ambiguity. Do not answer the query and do not introduce facts outside the evidence.
 
-For `clarify`, write one concise question and two to four distinct options. Each option must contain a refined standalone query and only evidence IDs supplied below. For `answer`, return an empty clarification question and no options."""
+For `clarify`, write one concise question and two to four distinct options. Each option must contain a refined standalone query and only evidence IDs supplied below. For `answer`, return an empty clarification question and no options.
+
+Keep it short: the reason, the question and each refined query under 300 characters, and each option label under 80."""
 
 
 def should_check_ambiguity(candidates: List[Dict[str, Any]]) -> bool:
@@ -109,20 +127,20 @@ def detect_ambiguity(query: str, candidates: List[Dict[str, Any]]) -> Dict[str, 
         allowed_ids = {item["id"] for item in evidence}
         options = [
             {
-                "label": option.label,
-                "refined_query": option.refined_query,
+                "label": _shorten(option.label, LABEL_CHARS),
+                "refined_query": _shorten(option.refined_query, TEXT_CHARS),
                 "evidence_ids": [value for value in option.evidence_ids if value in allowed_ids],
             }
             for option in decision.options
         ]
-        options = [option for option in options if option["evidence_ids"]]
+        options = [option for option in options if option["evidence_ids"]][:MAX_OPTIONS]
         if decision.decision == "clarify" and len(options) < 2:
             raise ValueError("The ambiguity response did not contain two evidence-backed options.")
         return {
             "status": "checked",
             "decision": decision.decision,
-            "reason": decision.reason,
-            "question": decision.clarification_question or None,
+            "reason": _shorten(decision.reason, TEXT_CHARS),
+            "question": _shorten(decision.clarification_question, TEXT_CHARS) or None,
             "options": options if decision.decision == "clarify" else [],
         }
     except (httpx.HTTPError, KeyError, TypeError, ValueError, ValidationError) as exc:
